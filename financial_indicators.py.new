@@ -1,0 +1,729 @@
+import json
+import logging
+from app import db
+from models import StandardAccountBalance, AnalysisResult
+
+logger = logging.getLogger(__name__)
+
+class FinancialIndicators:
+    """
+    Calculate financial indicators based on standard account balances
+    """
+    
+    @staticmethod
+    def calculate_all_indicators(ja_code, year):
+        """
+        Calculate all financial indicators for a JA and year
+        
+        Args:
+            ja_code: JA code
+            year: Financial year
+            
+        Returns:
+            dict: Results of indicator calculations by category
+        """
+        try:
+            results = {}
+            
+            # Calculate liquidity indicators
+            results['liquidity'] = FinancialIndicators.calculate_liquidity_indicators(ja_code, year)
+            
+            # Calculate profitability indicators
+            results['profitability'] = FinancialIndicators.calculate_profitability_indicators(ja_code, year)
+            
+            # Calculate safety indicators
+            results['safety'] = FinancialIndicators.calculate_safety_indicators(ja_code, year)
+            
+            # Calculate efficiency indicators
+            results['efficiency'] = FinancialIndicators.calculate_efficiency_indicators(ja_code, year)
+            
+            # Calculate cash flow indicators
+            results['cash_flow'] = FinancialIndicators.calculate_cash_flow_indicators(ja_code, year)
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error calculating financial indicators: {str(e)}")
+            return {
+                'status': 'error',
+                'message': f"Error calculating indicators: {str(e)}"
+            }
+    
+    @staticmethod
+    def get_account_value(ja_code, year, statement_type, account_code):
+        """
+        Helper method to get the current value of a specific account
+        親勘定科目（例：流動資産）の値がゼロの場合、子勘定科目（例：現金・預金）の合計を計算
+        
+        Args:
+            ja_code: JA code
+            year: Financial year
+            statement_type: Type of financial statement (bs, pl, cf)
+            account_code: Standard account code
+            
+        Returns:
+            tuple: (float: Account value or 0 if not found, str: Account name or '不明な科目')
+        """
+        try:
+            from models import StandardAccount
+            
+            # NoneやNaNをチェック
+            if account_code is None:
+                logger.warning("get_account_value: account_codeがNoneです")
+                return 0, "不明な科目"
+            
+            # 文字列型に変換（数字で受け取った場合も対応）
+            if not isinstance(account_code, str):
+                account_code = str(account_code)
+                
+            # Debug log
+            logger.debug(f"勘定科目の値を取得: JA={ja_code}, year={year}, statement_type={statement_type}, account_code={account_code}")
+            
+            # 特定のコードのハードコードされた処理（問題のある科目コード対応）
+            if account_code == "2999":  # 資産の部合計
+                return 0, "資産の部合計"
+            elif account_code == "4999":  # 負債の部合計
+                return 0, "負債の部合計"
+            elif account_code == "3200":  # 債券
+                return 0, "債券"
+                
+            # まず直接の勘定科目を取得
+            account = StandardAccountBalance.query.filter_by(
+                ja_code=ja_code,
+                year=year,
+                statement_type=statement_type,
+                standard_account_code=account_code
+            ).first()
+            
+            if account and account.current_value is not None:
+                account_value = account.current_value
+                account_name = account.standard_account_name or f"科目{account_code}"
+                logger.debug(f"勘定科目 {account_code} ({account_name}) の値: {account_value}")
+                return account_value, account_name
+                
+            # 親科目の場合は子科目の合計を計算
+            child_accounts = []
+            try:
+                # データベースから親子関係を検索
+                standard_accounts = StandardAccount.query.filter_by(parent_code=account_code).all()
+                if standard_accounts:
+                    child_codes = [sa.code for sa in standard_accounts]
+                    logger.debug(f"親勘定科目 {account_code} の子勘定科目: {child_codes}")
+                    
+                    child_accounts = StandardAccountBalance.query.filter(
+                        StandardAccountBalance.ja_code == ja_code,
+                        StandardAccountBalance.year == year,
+                        StandardAccountBalance.statement_type == statement_type,
+                        StandardAccountBalance.standard_account_code.in_(child_codes)
+                    ).all()
+            except Exception as e:
+                logger.warning(f"親子関係検索エラー: {str(e)}")
+                
+            # 子科目が見つかった場合は合計を計算
+            if child_accounts:
+                try:
+                    total_value = sum(acc.current_value for acc in child_accounts 
+                                  if acc.current_value is not None)
+                    
+                    # 親科目の名前を取得
+                    parent_account = StandardAccount.query.filter_by(code=account_code).first()
+                    parent_name = parent_account.name if parent_account else f"{account_code}の科目"
+                    
+                    logger.debug(f"子勘定科目合計: {total_value} ({len(child_accounts)} 勘定科目)")
+                    return total_value, parent_name
+                except Exception as e:
+                    logger.warning(f"子勘定科目合計計算エラー: {str(e)}")
+            
+            # デフォルトの親子関係定義を使用（互換性のため）
+            parent_codes = {
+                # BSの親勘定科目
+                "1": ["1010", "1020", "1100", "1200", "1300", "1400", "1500"],  # 現金預け金
+                "1600": ["1610", "1620", "1630", "1640", "1650", "1660"],  # 有価証券
+                "1700": ["1710", "1720", "1730", "1740"],  # 貸出金
+                "1800": ["1810", "1820", "1830", "1840"],  # 外国為替
+                "1900": ["1910", "1920", "1930", "1940", "1950", "1960", "1970", "1980", "1990", "1995"],  # その他資産
+                "2000": ["2010", "2020", "2030", "2040", "2050"],  # 有形固定資産
+                "2100": ["2110", "2120", "2130", "2140"],  # 無形固定資産
+                "3000": ["3010", "3020", "3030", "3040", "3050", "3060", "3070"],  # 預金
+                "3600": ["3610", "3620"],  # 借用金
+                "3700": ["3710", "3720", "3730", "3740"],  # 外国為替
+                "3900": ["3910", "3920", "3930", "3940", "3950", "3960", "3970", "3980", "3990"],  # その他負債
+                "4700": ["4710", "4720", "4730"],  # 貸倒引当金
+                "5100": ["5110", "5120"],  # 資本剰余金
+                "5200": ["5210", "5220"],  # 利益剰余金
+                "6900": ["6910", "6920", "6930", "6940", "6950", "6960", "6970", "6980"],  # 経常収益
+                "6100": ["6110", "6120"],  # 役務取引等収益
+                "6200": ["6210", "6220", "6230", "6240", "6250", "6260"],  # その他業務収益
+                "6300": ["6310", "6320", "6330", "6340", "6350"],  # その他経常収益
+                "7900": ["7910", "7920", "7930", "7940", "7950", "7960", "7970", "7980", "7990", "7995"],  # 経常費用
+                "7100": ["7110", "7120"],  # 役務取引等費用
+                "7200": ["7210", "7220", "7230", "7240", "7250", "7260", "7270"],  # その他業務費用
+                "7300": ["7310", "7320", "7330"],  # 営業経費
+                "7400": ["7410", "7420", "7430", "7440", "7450", "7460"],  # その他経常費用
+                "8000": ["8010", "8020", "8030"],  # 特別利益
+                "8100": ["8110", "8120", "8130"],  # 特別損失
+            }
+            
+            if account_code in parent_codes:
+                try:
+                    # 子勘定科目の残高を取得
+                    child_accounts = StandardAccountBalance.query.filter(
+                        StandardAccountBalance.ja_code == ja_code,
+                        StandardAccountBalance.year == year,
+                        StandardAccountBalance.statement_type == statement_type,
+                        StandardAccountBalance.standard_account_code.in_(parent_codes[account_code])
+                    ).all()
+                    
+                    # 合計を計算
+                    total_value = sum(acc.current_value for acc in child_accounts 
+                                    if acc.current_value is not None)
+                    
+                    # 親科目の名前を取得
+                    parent_account = StandardAccount.query.filter_by(code=account_code).first()
+                    parent_name = parent_account.name if parent_account else f"{account_code}の科目"
+                    
+                    logger.debug(f"デフォルト親子定義による合計: {total_value} ({len(child_accounts)} 勘定科目)")
+                    return total_value, parent_name
+                except Exception as e:
+                    logger.warning(f"デフォルト定義による合計計算エラー: {str(e)}")
+            
+            # 該当する科目が見つからない場合
+            logger.debug(f"勘定科目 {account_code} が見つかりません")
+            return 0, f"{account_code}の科目"
+            
+        except Exception as e:
+            logger.error(f"勘定科目の値取得エラー: {str(e)}")
+            return 0, "データ取得エラー"
+    
+    @staticmethod
+    def calculate_liquidity_indicators(ja_code, year):
+        """
+        Calculate liquidity indicators
+        
+        Args:
+            ja_code: JA code
+            year: Financial year
+            
+        Returns:
+            dict: Liquidity indicators with calculation details
+        """
+        try:
+            # 流動資産の定義：1（現金預け金）+ 1600（有価証券）+ 1700（貸出金）+ 1800（外国為替）+ 1900（その他資産）
+            # 各科目の値を取得
+            cash_deposits, cash_deposits_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "1")  # 現金預け金
+            securities, securities_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "1600")  # 有価証券
+            loans, loans_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "1700")  # 貸出金
+            foreign_exchange, foreign_exchange_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "1800")  # 外国為替
+            other_assets, other_assets_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "1900")  # その他資産
+            
+            # 流動資産の合計を計算
+            current_assets = cash_deposits + securities + loans + foreign_exchange + other_assets
+            current_assets_name = "流動資産（合計）"
+            
+            # 流動負債の定義：預金（3000）+ 譲渡性預金（3100）+ 債券（3200）+ コールマネー（3300）+ 売現先勘定（3400）
+            # + 債券貸借取引受入担保金（3500）+ 借用金（3600）+ 割引手形（3605）
+            
+            # 各科目の値を取得
+            deposits, deposits_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "3000")  # 預金
+            negotiable_deposits, negotiable_deposits_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "3100")  # 譲渡性預金
+            bonds, bonds_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "3200")  # 債券
+            call_money, call_money_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "3300")  # コールマネー
+            sales_repurchase, sales_repurchase_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "3400")  # 売現先勘定
+            securities_lending, securities_lending_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "3500")  # 債券貸借取引受入担保金
+            borrowed_money, borrowed_money_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "3600")  # 借用金
+            discounted_notes, discounted_notes_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "3605")  # 割引手形
+            
+            # 流動負債の合計を計算
+            current_liabilities = deposits + negotiable_deposits + bonds + call_money + sales_repurchase + securities_lending + borrowed_money + discounted_notes
+            current_liabilities_name = "流動負債（合計）"
+            
+            # デバッグ出力
+            logger.debug(f"預金: {deposits} ({deposits_name})")
+            logger.debug(f"譲渡性預金: {negotiable_deposits} ({negotiable_deposits_name})")
+            logger.debug(f"債券: {bonds} ({bonds_name})")
+            logger.debug(f"コールマネー: {call_money} ({call_money_name})")
+            logger.debug(f"売現先勘定: {sales_repurchase} ({sales_repurchase_name})")
+            logger.debug(f"債券貸借取引受入担保金: {securities_lending} ({securities_lending_name})")
+            logger.debug(f"借用金: {borrowed_money} ({borrowed_money_name})")
+            logger.debug(f"割引手形: {discounted_notes} ({discounted_notes_name})")
+            
+            # その他の勘定科目を取得
+            cash_and_equivalents, cash_equivalents_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "1010")  # 現金
+            short_term_investments, investments_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "1020")  # 預け金
+            accounts_receivable, receivables_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "1110")  # コールローン
+            
+            # 流動性指標の計算
+            
+            # 流動比率（Current Ratio）の計算
+            current_ratio = 0
+            if current_liabilities != 0:
+                current_ratio = (current_assets / current_liabilities) * 100
+            
+            # 当座比率（Quick Ratio）の計算
+            # 当座資産（現金預け金 + コールローン）
+            quick_assets = cash_deposits + accounts_receivable
+            quick_ratio = 0
+            if current_liabilities != 0:
+                quick_ratio = (quick_assets / current_liabilities) * 100
+            
+            # 現金比率（Cash Ratio）の計算
+            cash_ratio = 0
+            if current_liabilities != 0:
+                cash_ratio = (cash_deposits / current_liabilities) * 100
+            
+            # 運転資本（Working Capital）の計算
+            working_capital = current_assets - current_liabilities
+            
+            # 結果を返す
+            return {
+                'status': 'success',
+                'indicators': {
+                    'current_ratio': {
+                        'value': round(current_ratio, 2),
+                        'formula': '(流動資産 ÷ 流動負債) × 100',
+                        'description': '短期負債に対する支払能力を示す指標。一般的に、値が高いほど流動性が高いとされる。',
+                        'components': {
+                            '流動資産合計': {'code': '1', 'name': current_assets_name, 'value': current_assets},
+                            '預金': {'code': '3000', 'name': deposits_name or '預金', 'value': deposits},
+                            '譲渡性預金': {'code': '3100', 'name': negotiable_deposits_name or '譲渡性預金', 'value': negotiable_deposits},
+                            '債券': {'code': '3200', 'name': bonds_name or '債券', 'value': bonds},
+                            'コールマネー': {'code': '3300', 'name': call_money_name or 'コールマネー', 'value': call_money},
+                            '売現先勘定': {'code': '3400', 'name': sales_repurchase_name or '売現先勘定', 'value': sales_repurchase},
+                            '債券貸借取引受入担保金': {'code': '3500', 'name': securities_lending_name or '債券貸借取引受入担保金', 'value': securities_lending},
+                            '借用金': {'code': '3600', 'name': borrowed_money_name or '借用金', 'value': borrowed_money},
+                            '流動負債合計': {'name': current_liabilities_name, 'value': current_liabilities}
+                        }
+                    },
+                    'quick_ratio': {
+                        'value': round(quick_ratio, 2),
+                        'formula': '(当座資産 ÷ 流動負債) × 100',
+                        'description': '即時的な支払能力を示す指標。棚卸資産を除外することで、より厳格な流動性評価となる。',
+                        'components': {
+                            '現金預け金': {'code': '1', 'name': cash_deposits_name or '現金預け金', 'value': cash_deposits},
+                            'コールローン': {'code': '1110', 'name': receivables_name or 'コールローン', 'value': accounts_receivable},
+                            '当座資産合計': {'name': '当座資産（合計）', 'value': quick_assets},
+                            '流動負債合計': {'name': current_liabilities_name, 'value': current_liabilities}
+                        }
+                    },
+                    'cash_ratio': {
+                        'value': round(cash_ratio, 2),
+                        'formula': '(現金預け金 ÷ 流動負債) × 100',
+                        'description': '最も厳格な流動性指標。現金同等物のみで短期負債を返済できる能力を示す。',
+                        'components': {
+                            '現金預け金': {'code': '1', 'name': cash_deposits_name or '現金預け金', 'value': cash_deposits},
+                            '流動負債合計': {'name': current_liabilities_name, 'value': current_liabilities}
+                        }
+                    },
+                    'working_capital': {
+                        'value': round(working_capital, 2),
+                        'formula': '流動資産 - 流動負債',
+                        'description': '日常業務に利用可能な運転資金を表す。正の値が大きいほど、短期的な財務安定性が高い。',
+                        'components': {
+                            '流動資産合計': {'code': '1', 'name': current_assets_name, 'value': current_assets},
+                            '流動負債合計': {'name': current_liabilities_name, 'value': current_liabilities}
+                        }
+                    }
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error calculating liquidity indicators: {str(e)}")
+            return {
+                'status': 'error',
+                'message': f"流動性指標の計算中にエラーが発生しました: {str(e)}"
+            }
+    
+    @staticmethod
+    def calculate_profitability_indicators(ja_code, year):
+        """
+        Calculate profitability indicators
+        
+        Args:
+            ja_code: JA code
+            year: Financial year
+            
+        Returns:
+            dict: Profitability indicators with calculation details
+        """
+        try:
+            # 当期純利益を取得
+            net_income_value, net_income_name = FinancialIndicators.get_account_value(ja_code, year, "pl", "9900")  # 当期純利益（Net income）
+            
+            # 経常利益と経常費用を取得
+            operating_income_value, operating_income_name = FinancialIndicators.get_account_value(ja_code, year, "pl", "6900")  # 経常利益
+            total_expenses_value, total_expenses_name = FinancialIndicators.get_account_value(ja_code, year, "pl", "7900")  # 経常費用
+            
+            # 総資産と純資産を取得
+            total_assets_value, total_assets_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "1")  # 総資産（Total assets）- BS合計
+            total_equity_value, total_equity_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "5000")  # 純資産（Total equity）
+            
+            # ROAの計算（総資産利益率）
+            roa = 0
+            if total_assets_value != 0:
+                roa = (net_income_value / total_assets_value) * 100
+            
+            # ROEの計算（自己資本利益率）
+            roe = 0
+            if total_equity_value != 0:
+                roe = (net_income_value / total_equity_value) * 100
+            
+            # 営業利益率の計算（Operating Profit Margin）
+            operating_profit_margin = 0
+            if operating_income_value != 0:
+                # Operating profit margin = (Operating income - Operating expenses) / Operating income * 100
+                operating_profit = operating_income_value - total_expenses_value
+                operating_profit_margin = (operating_profit / operating_income_value) * 100
+                # デバッグ出力
+                logger.debug(f" 経常利益: {operating_income_value}, 経常費用: {total_expenses_value}")
+                logger.debug(f" 正しい計算式: ({operating_income_value} - {total_expenses_value}) ÷ {operating_income_value} × 100 = {operating_profit_margin}%")
+            
+            # 結果を返す
+            return {
+                'status': 'success',
+                'indicators': {
+                    'roa': {
+                        'value': round(roa, 2),
+                        'formula': '(当期純利益 ÷ 総資産) × 100',
+                        'description': '総資産に対する純利益の割合を示す指標。資産の効率的な運用度を評価する。',
+                        'components': {
+                            '当期純利益': {'code': '9900', 'name': net_income_name or '当期純利益', 'value': net_income_value},
+                            '総資産': {'code': '1', 'name': total_assets_name or '総資産', 'value': total_assets_value}
+                        }
+                    },
+                    'roe': {
+                        'value': round(roe, 2),
+                        'formula': '(当期純利益 ÷ 純資産) × 100',
+                        'description': '自己資本に対する純利益の割合を示す指標。株主資本の収益性を評価する。',
+                        'components': {
+                            '当期純利益': {'code': '9900', 'name': net_income_name or '当期純利益', 'value': net_income_value},
+                            '純資産': {'code': '5000', 'name': total_equity_name or '純資産', 'value': total_equity_value}
+                        }
+                    },
+                    'operating_profit_margin': {
+                        'value': round(operating_profit_margin, 2),
+                        'formula': '((経常利益 - 経常費用) ÷ 経常利益) × 100',
+                        'description': '経常収益に対する経常利益の割合を示す指標。営業活動の効率性を評価する。',
+                        'components': {
+                            '経常利益': {'code': '6900', 'name': operating_income_name or '経常利益', 'value': operating_income_value},
+                            '経常費用': {'code': '7900', 'name': total_expenses_name or '経常費用', 'value': total_expenses_value}
+                        }
+                    }
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error calculating profitability indicators: {str(e)}")
+            return {
+                'status': 'error',
+                'message': f"収益性指標の計算中にエラーが発生しました: {str(e)}"
+            }
+    
+    @staticmethod
+    def calculate_safety_indicators(ja_code, year):
+        """
+        Calculate safety indicators
+        
+        Args:
+            ja_code: JA code
+            year: Financial year
+            
+        Returns:
+            dict: Safety indicators with calculation details
+        """
+        try:
+            # 総資産と負債を取得
+            total_assets, total_assets_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "2999")  # 資産の部合計
+            total_liabilities, total_liabilities_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "4999")  # 負債の部合計
+            
+            # 総資産と負債から純資産を計算
+            total_equity = total_assets - total_liabilities
+            total_equity_name = "純資産（計算値）"
+            
+            # 自己資本比率（Equity Ratio）の計算
+            equity_ratio = 0
+            if total_assets != 0:
+                equity_ratio = (total_equity / total_assets) * 100
+            
+            # 負債比率（Debt Ratio）の計算
+            debt_ratio = 0
+            if total_assets != 0:
+                debt_ratio = (total_liabilities / total_assets) * 100
+            
+            # 負債資本比率（Debt-to-Equity Ratio）の計算
+            debt_to_equity = 0
+            if total_equity != 0:
+                debt_to_equity = (total_liabilities / total_equity) * 100
+            
+            # 結果を返す
+            return {
+                'status': 'success',
+                'indicators': {
+                    'equity_ratio': {
+                        'value': round(equity_ratio, 2),
+                        'formula': '(純資産 ÷ 総資産) × 100',
+                        'description': '総資産に占める自己資本の割合を示す指標。値が高いほど財務的安全性が高い。',
+                        'components': {
+                            '総資産': {'code': '2999', 'name': total_assets_name or '資産の部合計', 'value': total_assets},
+                            '負債合計': {'code': '4999', 'name': total_liabilities_name or '負債の部合計', 'value': total_liabilities},
+                            '純資産': {'name': total_equity_name, 'value': total_equity}
+                        }
+                    },
+                    'debt_ratio': {
+                        'value': round(debt_ratio, 2),
+                        'formula': '(負債合計 ÷ 総資産) × 100',
+                        'description': '総資産に占める負債の割合を示す指標。値が低いほど財務的安全性が高い。',
+                        'components': {
+                            '負債合計': {'code': '4999', 'name': total_liabilities_name or '負債の部合計', 'value': total_liabilities},
+                            '総資産': {'code': '2999', 'name': total_assets_name or '資産の部合計', 'value': total_assets}
+                        }
+                    },
+                    'debt_to_equity': {
+                        'value': round(debt_to_equity, 2),
+                        'formula': '(負債合計 ÷ 純資産) × 100',
+                        'description': '純資産に対する負債の割合を示す指標。値が低いほど財務レバレッジが低く、財務的安全性が高い。',
+                        'components': {
+                            '負債合計': {'code': '4999', 'name': total_liabilities_name or '負債の部合計', 'value': total_liabilities},
+                            '純資産': {'name': total_equity_name, 'value': total_equity}
+                        }
+                    }
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error calculating safety indicators: {str(e)}")
+            return {
+                'status': 'error',
+                'message': f"安全性指標の計算中にエラーが発生しました: {str(e)}"
+            }
+    
+    @staticmethod
+    def calculate_efficiency_indicators(ja_code, year):
+        """
+        Calculate efficiency indicators
+        
+        Args:
+            ja_code: JA code
+            year: Financial year
+            
+        Returns:
+            dict: Efficiency indicators with calculation details
+        """
+        try:
+            # 収益と資産関連のデータを取得
+            total_revenue_value, total_revenue_name = FinancialIndicators.get_account_value(ja_code, year, "pl", "6000")  # Total revenue
+            total_assets_value, total_assets_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "2999")  # Total assets - 資産の部合計
+            accounts_receivable_value, accounts_receivable_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "1130")  # Accounts receivable
+            inventory_value, inventory_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "1140")  # Inventory
+            accounts_payable_value, accounts_payable_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "3110")  # Accounts payable
+            cost_of_goods_sold_value, cost_of_goods_sold_name = FinancialIndicators.get_account_value(ja_code, year, "pl", "7100")  # Cost of goods sold
+            
+            # 総資産回転率（Asset Turnover Ratio）の計算
+            asset_turnover = 0
+            if total_assets_value != 0:
+                asset_turnover = total_revenue_value / total_assets_value
+            
+            # 売掛金回転率（Receivables Turnover Ratio）の計算
+            receivables_turnover = 0
+            if accounts_receivable_value != 0:
+                receivables_turnover = total_revenue_value / accounts_receivable_value
+            
+            # 売掛金回転日数（Days Sales Outstanding）の計算
+            days_sales_outstanding = 0
+            if receivables_turnover != 0:
+                days_sales_outstanding = 365 / receivables_turnover
+            
+            # 在庫回転率（Inventory Turnover Ratio）の計算
+            inventory_turnover = 0
+            if inventory_value != 0:
+                inventory_turnover = cost_of_goods_sold_value / inventory_value
+            
+            # 在庫回転日数（Days Inventory Outstanding）の計算
+            days_inventory_outstanding = 0
+            if inventory_turnover != 0:
+                days_inventory_outstanding = 365 / inventory_turnover
+            
+            # 買掛金回転率（Payables Turnover Ratio）の計算
+            payables_turnover = 0
+            if accounts_payable_value != 0:
+                payables_turnover = cost_of_goods_sold_value / accounts_payable_value
+            
+            # 買掛金回転日数（Days Payables Outstanding）の計算
+            days_payables_outstanding = 0
+            if payables_turnover != 0:
+                days_payables_outstanding = 365 / payables_turnover
+            
+            # キャッシュコンバージョンサイクル（Cash Conversion Cycle）の計算
+            cash_conversion_cycle = days_inventory_outstanding + days_sales_outstanding - days_payables_outstanding
+            
+            # 結果を返す
+            return {
+                'status': 'success',
+                'indicators': {
+                    'asset_turnover': {
+                        'value': round(asset_turnover, 2),
+                        'formula': '経常収益 ÷ 総資産',
+                        'description': '総資産がどれだけ効率的に収益を生み出しているかを示す指標。値が高いほど資産の効率的活用を示す。',
+                        'components': {
+                            '経常収益': {'code': '6000', 'name': total_revenue_name or '経常収益', 'value': total_revenue_value},
+                            '総資産': {'code': '2999', 'name': total_assets_name or '資産の部合計', 'value': total_assets_value}
+                        }
+                    },
+                    'receivables_turnover': {
+                        'value': round(receivables_turnover, 2),
+                        'formula': '経常収益 ÷ 売掛金',
+                        'description': '売掛金の回収効率を示す指標。値が高いほど、売掛金の回収が効率的に行われていることを示す。',
+                        'components': {
+                            '経常収益': {'code': '6000', 'name': total_revenue_name or '経常収益', 'value': total_revenue_value},
+                            '売掛金': {'code': '1130', 'name': accounts_receivable_name or '売掛金', 'value': accounts_receivable_value}
+                        }
+                    },
+                    'days_sales_outstanding': {
+                        'value': round(days_sales_outstanding, 2),
+                        'formula': '365 ÷ 売掛金回転率',
+                        'description': '売上の現金化にかかる平均日数を示す指標。値が低いほど、売掛金の回収が速いことを示す。',
+                        'components': {
+                            '売掛金回転率': {'value': receivables_turnover}
+                        }
+                    },
+                    'inventory_turnover': {
+                        'value': round(inventory_turnover, 2),
+                        'formula': '売上原価 ÷ 棚卸資産',
+                        'description': '在庫の効率的な利用を示す指標。値が高いほど、在庫が効率的に販売されていることを示す。',
+                        'components': {
+                            '売上原価': {'code': '7100', 'name': cost_of_goods_sold_name or '売上原価', 'value': cost_of_goods_sold_value},
+                            '棚卸資産': {'code': '1140', 'name': inventory_name or '棚卸資産', 'value': inventory_value}
+                        }
+                    },
+                    'days_inventory_outstanding': {
+                        'value': round(days_inventory_outstanding, 2),
+                        'formula': '365 ÷ 在庫回転率',
+                        'description': '在庫が販売されるまでの平均日数を示す指標。値が低いほど、在庫の回転が速いことを示す。',
+                        'components': {
+                            '在庫回転率': {'value': inventory_turnover}
+                        }
+                    },
+                    'payables_turnover': {
+                        'value': round(payables_turnover, 2),
+                        'formula': '売上原価 ÷ 買掛金',
+                        'description': '買掛金の支払い頻度を示す指標。値が低いほど、支払いタイミングを最適化していることを示す可能性がある。',
+                        'components': {
+                            '売上原価': {'code': '7100', 'name': cost_of_goods_sold_name or '売上原価', 'value': cost_of_goods_sold_value},
+                            '買掛金': {'code': '3110', 'name': accounts_payable_name or '買掛金', 'value': accounts_payable_value}
+                        }
+                    },
+                    'days_payables_outstanding': {
+                        'value': round(days_payables_outstanding, 2),
+                        'formula': '365 ÷ 買掛金回転率',
+                        'description': '買掛金の支払いまでにかかる平均日数を示す指標。値が高いほど、支払いサイクルが長いことを示す。',
+                        'components': {
+                            '買掛金回転率': {'value': payables_turnover}
+                        }
+                    },
+                    'cash_conversion_cycle': {
+                        'value': round(cash_conversion_cycle, 2),
+                        'formula': '在庫回転日数 + 売掛金回転日数 - 買掛金回転日数',
+                        'description': '投資が現金として回収されるまでの平均日数を示す指標。値が低いほど、運転資本の効率が高いことを示す。',
+                        'components': {
+                            '在庫回転日数': {'value': days_inventory_outstanding},
+                            '売掛金回転日数': {'value': days_sales_outstanding},
+                            '買掛金回転日数': {'value': days_payables_outstanding}
+                        }
+                    }
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error calculating efficiency indicators: {str(e)}")
+            return {
+                'status': 'error',
+                'message': f"効率性指標の計算中にエラーが発生しました: {str(e)}"
+            }
+    
+    @staticmethod
+    def calculate_cash_flow_indicators(ja_code, year):
+        """
+        Calculate cash flow indicators
+        
+        Args:
+            ja_code: JA code
+            year: Financial year
+            
+        Returns:
+            dict: Cash flow indicators with calculation details
+        """
+        try:
+            # キャッシュフロー関連のデータを取得
+            operating_cash_flow_value, operating_cash_flow_name = FinancialIndicators.get_account_value(ja_code, year, "cf", "11000")  # 事業活動によるキャッシュ・フロー
+            investing_cash_flow_value, investing_cash_flow_name = FinancialIndicators.get_account_value(ja_code, year, "cf", "12000")  # 投資活動によるキャッシュ・フロー
+            total_debt_value, total_debt_name = FinancialIndicators.get_account_value(ja_code, year, "bs", "4999")  # 負債の部合計
+            capital_expenditure_value, capital_expenditure_name = FinancialIndicators.get_account_value(ja_code, year, "cf", "11210")  # Capital expenditure
+            total_revenue_value, total_revenue_name = FinancialIndicators.get_account_value(ja_code, year, "pl", "6000")  # 経常収益
+            net_income_value, net_income_name = FinancialIndicators.get_account_value(ja_code, year, "pl", "9900")  # 当期純利益
+            
+            # フリーキャッシュフロー（Free Cash Flow）の計算
+            free_cash_flow = operating_cash_flow_value - capital_expenditure_value
+            
+            # 営業キャッシュフロー比率（Operating Cash Flow Ratio）の計算
+            ocf_ratio = 0
+            if total_debt_value != 0:
+                ocf_ratio = operating_cash_flow_value / total_debt_value
+            
+            # キャッシュフローマージン（Cash Flow Margin）の計算
+            cash_flow_margin = 0
+            if total_revenue_value != 0:
+                cash_flow_margin = (operating_cash_flow_value / total_revenue_value) * 100
+            
+            # キャッシュフロー収益比率（Cash Flow to Income Ratio）の計算
+            cf_to_income = 0
+            if net_income_value != 0:
+                cf_to_income = operating_cash_flow_value / net_income_value
+            
+            # 結果を返す
+            return {
+                'status': 'success',
+                'indicators': {
+                    'free_cash_flow': {
+                        'value': round(free_cash_flow, 2),
+                        'formula': '営業キャッシュフロー - 設備投資',
+                        'description': '企業が事業運営後に自由に使える現金を示す指標。値が高いほど、柔軟な資金活用が可能。',
+                        'components': {
+                            '営業キャッシュフロー': {'code': '11000', 'name': operating_cash_flow_name or '事業活動によるキャッシュ・フロー', 'value': operating_cash_flow_value},
+                            '設備投資': {'code': '11210', 'name': capital_expenditure_name or '設備投資', 'value': capital_expenditure_value}
+                        }
+                    },
+                    'ocf_ratio': {
+                        'value': round(ocf_ratio, 2),
+                        'formula': '営業キャッシュフロー ÷ 負債合計',
+                        'description': '負債に対する営業キャッシュフローの比率を示す指標。値が高いほど、負債返済能力が高い。',
+                        'components': {
+                            '営業キャッシュフロー': {'code': '11000', 'name': operating_cash_flow_name or '事業活動によるキャッシュ・フロー', 'value': operating_cash_flow_value},
+                            '負債合計': {'code': '4999', 'name': total_debt_name or '負債の部合計', 'value': total_debt_value}
+                        }
+                    },
+                    'cash_flow_margin': {
+                        'value': round(cash_flow_margin, 2),
+                        'formula': '(営業キャッシュフロー ÷ 経常収益) × 100',
+                        'description': '収益に対する営業キャッシュフローの割合を示す指標。値が高いほど、収益の現金化率が高い。',
+                        'components': {
+                            '営業キャッシュフロー': {'code': '11000', 'name': operating_cash_flow_name or '事業活動によるキャッシュ・フロー', 'value': operating_cash_flow_value},
+                            '経常収益': {'code': '6000', 'name': total_revenue_name or '経常収益', 'value': total_revenue_value}
+                        }
+                    },
+                    'cf_to_income': {
+                        'value': round(cf_to_income, 2),
+                        'formula': '営業キャッシュフロー ÷ 当期純利益',
+                        'description': '純利益に対する営業キャッシュフローの比率を示す指標。値が高いほど、利益の質が高い。',
+                        'components': {
+                            '営業キャッシュフロー': {'code': '11000', 'name': operating_cash_flow_name or '事業活動によるキャッシュ・フロー', 'value': operating_cash_flow_value},
+                            '当期純利益': {'code': '9900', 'name': net_income_name or '当期純利益', 'value': net_income_value}
+                        }
+                    }
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error calculating cash flow indicators: {str(e)}")
+            return {
+                'status': 'error',
+                'message': f"キャッシュフロー指標の計算中にエラーが発生しました: {str(e)}"
+            }
