@@ -1,0 +1,757 @@
+{% extends "layout.html" %}
+
+{% block title %}JA財務リスク比較分析{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+<style>
+.comparison-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.comparison-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+}
+
+.ja-selector {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+    gap: 20px;
+}
+
+.ja-card {
+    flex: 1;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border: 2px solid #e2e8f0;
+}
+
+.ja-card.selected {
+    border-color: #4299e1;
+    background: #f7fafc;
+}
+
+.ja-card h3 {
+    margin: 0 0 15px 0;
+    color: #2d3748;
+    font-size: 1.2em;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #4a5568;
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.comparison-chart-container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 500px;
+    margin: 20px 0;
+}
+
+.comparison-table {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.table {
+    margin: 0;
+}
+
+.table th {
+    background: #f8f9fa;
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.table td, .table th {
+    vertical-align: middle;
+    padding: 12px 15px;
+}
+
+.risk-score {
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 20px;
+    color: white;
+    text-align: center;
+    min-width: 50px;
+    display: inline-block;
+}
+
+.risk-1 { background-color: #dc3545; }
+.risk-2 { background-color: #fd7e14; }
+.risk-3 { background-color: #ffc107; color: #000; }
+.risk-4 { background-color: #20c997; }
+.risk-5 { background-color: #28a745; }
+
+.comparison-difference {
+    font-weight: bold;
+}
+
+.difference-positive {
+    color: #28a745;
+}
+
+.difference-negative {
+    color: #dc3545;
+}
+
+.difference-neutral {
+    color: #6c757d;
+}
+
+.btn-compare {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: block;
+    margin: 20px auto;
+}
+
+.btn-compare:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.loading-spinner {
+    display: none;
+    text-align: center;
+    padding: 40px;
+}
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    .ja-selector {
+        flex-direction: column;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="comparison-container">
+    <div class="comparison-header">
+        <h1><i class="fas fa-chart-line"></i> JA財務リスク比較分析</h1>
+        <p>2つのJAの財務リスク指標を比較して、相対的なパフォーマンスを分析します</p>
+    </div>
+
+
+
+    <form id="comparisonForm">
+        <div class="row">
+            <!-- JA 1選択テーブル -->
+            <div class="col-md-6">
+                <div class="ja-selection-card">
+                    <h3><i class="fas fa-building text-primary"></i> JA 1（基準）を選択</h3>
+                    <div class="selected-ja" id="ja1Selected" style="display: none;">
+                        <div class="alert alert-success">
+                            <strong>選択済み:</strong> <span id="ja1SelectedText"></span>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover ja-selection-table">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>選択</th>
+                                    <th>JAコード</th>
+                                    <th>JA名</th>
+                                    <th>都道府県</th>
+                                    <th>利用可能年度</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ja in ja_list %}
+                                <tr class="ja-row" data-ja-code="{{ ja.ja_code }}" data-ja-name="{{ ja.name }}" data-prefecture="{{ ja.prefecture }}">
+                                    <td>
+                                        <input type="radio" name="ja1_selection" value="{{ ja.ja_code }}" class="form-check-input ja1-radio" id="ja1_{{ ja.ja_code }}">
+                                    </td>
+                                    <td><strong>{{ ja.ja_code }}</strong></td>
+                                    <td>{{ ja.name }}</td>
+                                    <td>{{ ja.prefecture }}</td>
+                                    <td>
+                                        {% if ja.available_years %}
+                                            {% for year in ja.available_years %}
+                                                <span class="badge bg-success me-1">{{ year }}年度</span>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="text-muted">データなし</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- JA 2選択テーブル -->
+            <div class="col-md-6">
+                <div class="ja-selection-card">
+                    <h3><i class="fas fa-building text-success"></i> JA 2（比較対象）を選択</h3>
+                    <div class="selected-ja" id="ja2Selected" style="display: none;">
+                        <div class="alert alert-info">
+                            <strong>選択済み:</strong> <span id="ja2SelectedText"></span>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover ja-selection-table">
+                            <thead class="table-success">
+                                <tr>
+                                    <th>選択</th>
+                                    <th>JAコード</th>
+                                    <th>JA名</th>
+                                    <th>都道府県</th>
+                                    <th>利用可能年度</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ja in ja_list %}
+                                <tr class="ja-row" data-ja-code="{{ ja.ja_code }}" data-ja-name="{{ ja.name }}" data-prefecture="{{ ja.prefecture }}">
+                                    <td>
+                                        <input type="radio" name="ja2_selection" value="{{ ja.ja_code }}" class="form-check-input ja2-radio" id="ja2_{{ ja.ja_code }}">
+                                    </td>
+                                    <td><strong>{{ ja.ja_code }}</strong></td>
+                                    <td>{{ ja.name }}</td>
+                                    <td>{{ ja.prefecture }}</td>
+                                    <td>
+                                        {% if ja.available_years %}
+                                            {% for year in ja.available_years %}
+                                                <span class="badge bg-info me-1">{{ year }}年度</span>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="text-muted">データなし</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary btn-lg" id="compareButton">
+                <i class="fas fa-chart-bar"></i> 比較分析を実行
+            </button>
+        </div>
+    </form>
+
+    <div class="loading-spinner" id="loadingSpinner">
+        <div class="spinner"></div>
+        <p>比較データを取得中...</p>
+    </div>
+
+    <div id="comparisonResults" style="display: none;">
+        <div class="comparison-chart-container">
+            <h3><i class="fas fa-radar-chart"></i> リスク指標比較チャート</h3>
+            <div class="chart-wrapper">
+                <canvas id="comparisonRadarChart"></canvas>
+            </div>
+        </div>
+
+        <div class="comparison-table">
+            <h3 style="padding: 20px 20px 0 20px;"><i class="fas fa-table"></i> 詳細比較データ</h3>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>リスク指標</th>
+                        <th id="ja1Header">JA 1</th>
+                        <th id="ja2Header">JA 2</th>
+                        <th>差異</th>
+                        <th>評価</th>
+                    </tr>
+                </thead>
+                <tbody id="comparisonTableBody">
+                    <!-- 比較データが動的に挿入されます -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+// JA比較機能のメイン処理
+function executeComparison() {
+    console.log('JA比較分析を開始します');
+    
+    // フォームデータを取得（新しい表形式選択に対応）
+    const ja1Selected = document.querySelector('input[name="ja1_selection"]:checked');
+    const ja2Selected = document.querySelector('input[name="ja2_selection"]:checked');
+    
+    // 入力チェック
+    if (!ja1Selected || !ja2Selected) {
+        alert('2つのJAを選択してください。');
+        return;
+    }
+    
+    const ja1Code = ja1Selected.value;
+    const ja2Code = ja2Selected.value;
+    
+    // 利用可能年度を自動的に取得（2021年固定）
+    const ja1Year = 2021;
+    const ja2Year = 2021;
+    
+    console.log('選択データ:', {ja1Code, ja1Year, ja2Code, ja2Year});
+    
+    if (ja1Code === ja2Code && ja1Year === ja2Year) {
+        alert('異なるJAまたは年度を選択してください。');
+        return;
+    }
+    
+    // ローディング表示
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const resultsDiv = document.getElementById('comparisonResults');
+    
+    loadingSpinner.style.display = 'block';
+    resultsDiv.style.display = 'none';
+    
+    // API呼び出し
+    const requestData = {
+        ja1_code: ja1Code,
+        ja1_year: parseInt(ja1Year),
+        ja2_code: ja2Code,
+        ja2_year: parseInt(ja2Year)
+    };
+    
+    console.log('APIリクエスト送信:', requestData);
+    
+    fetch('/api/ja_comparison', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        console.log('APIレスポンス受信:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('比較データ受信:', data);
+        displayComparisonResults(data);
+        loadingSpinner.style.display = 'none';
+        resultsDiv.style.display = 'block';
+    })
+    .catch(error => {
+        console.error('比較分析エラー:', error);
+        alert('比較分析中にエラーが発生しました: ' + error.message);
+        loadingSpinner.style.display = 'none';
+    });
+}
+
+// 比較結果を表示する関数
+function displayComparisonResults(data) {
+    console.log('比較結果を表示します:', data);
+    
+    // レーダーチャートを描画
+    drawComparisonChart(data);
+    
+    // 比較テーブルを更新
+    updateComparisonTable(data);
+}
+
+// レーダーチャートを描画
+function drawComparisonChart(data) {
+    const ctx = document.getElementById('comparisonRadarChart').getContext('2d');
+    
+    const chartData = {
+        labels: ['収益性', '効率性', '安全性', 'キャッシュフロー', '流動性'],
+        datasets: [
+            {
+                label: `${data.ja1_info.name} (${data.ja1_info.year}年)`,
+                data: [
+                    data.ja1_scores.profitability,
+                    data.ja1_scores.efficiency,
+                    data.ja1_scores.safety,
+                    data.ja1_scores.cash_flow,
+                    data.ja1_scores.liquidity
+                ],
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(54, 162, 235, 1)'
+            },
+            {
+                label: `${data.ja2_info.name} (${data.ja2_info.year}年)`,
+                data: [
+                    data.ja2_scores.profitability,
+                    data.ja2_scores.efficiency,
+                    data.ja2_scores.safety,
+                    data.ja2_scores.cash_flow,
+                    data.ja2_scores.liquidity
+                ],
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(255, 99, 132, 1)'
+            }
+        ]
+    };
+    
+    const config = {
+        type: 'radar',
+        data: chartData,
+        options: {
+            responsive: true,
+            scales: {
+                r: {
+                    angleLines: {
+                        display: true
+                    },
+                    suggestedMin: 1,
+                    suggestedMax: 5
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'JA財務リスク比較'
+                }
+            }
+        }
+    };
+    
+    // 既存のチャートがあれば破棄
+    if (window.comparisonChart) {
+        window.comparisonChart.destroy();
+    }
+    
+    window.comparisonChart = new Chart(ctx, config);
+}
+
+// 比較テーブルを更新
+function updateComparisonTable(data) {
+    const tbody = document.querySelector('#comparisonResults table tbody');
+    const categories = [
+        {key: 'profitability', name: '収益性'},
+        {key: 'efficiency', name: '効率性'}, 
+        {key: 'safety', name: '安全性'},
+        {key: 'cash_flow', name: 'キャッシュフロー'},
+        {key: 'liquidity', name: '流動性'}
+    ];
+    
+    tbody.innerHTML = '';
+    
+    categories.forEach(category => {
+        const ja1Score = data.ja1_scores[category.key];
+        const ja2Score = data.ja2_scores[category.key];
+        const difference = ja2Score - ja1Score;
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${category.name}</td>
+            <td class="text-center">${ja1Score.toFixed(1)}</td>
+            <td class="text-center">${ja2Score.toFixed(1)}</td>
+            <td class="text-center ${difference > 0 ? 'text-success' : difference < 0 ? 'text-danger' : 'text-muted'}">
+                ${difference > 0 ? '+' : ''}${difference.toFixed(1)}
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+// ページ読み込み完了時の初期化
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('JA比較画面が読み込まれました');
+    
+    // すべてのボタンを確認
+    const allButtons = document.querySelectorAll('button');
+    console.log('画面上のすべてのボタン:', allButtons);
+    allButtons.forEach((btn, index) => {
+        console.log(`ボタン${index}: ID=${btn.id}, Class=${btn.className}, Text=${btn.textContent}`);
+    });
+    
+    // 比較実行ボタンにイベントリスナーを追加
+    const compareButton = document.getElementById('compareButton');
+    console.log('compareButton要素:', compareButton);
+    
+    if (compareButton) {
+        compareButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('比較実行ボタンがクリックされました');
+            executeComparison();
+        });
+        console.log('比較実行ボタンのイベントリスナーが設定されました');
+    } else {
+        console.error('比較実行ボタンが見つかりません');
+        
+        // 代替として、他の方法でボタンを探してみる
+        const altButton = document.querySelector('.btn-primary');
+        console.log('代替ボタン検索結果:', altButton);
+        
+        if (altButton) {
+            altButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('代替ボタンがクリックされました');
+                executeComparison();
+            });
+            console.log('代替ボタンのイベントリスナーが設定されました');
+        }
+    }
+    
+    // 選択されたJAをハイライト
+    document.querySelectorAll('select[id*="_code"]').forEach(select => {
+        select.addEventListener('change', function() {
+            const card = this.closest('.ja-card');
+            if (this.value) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+    });
+    
+    async function performComparison() {
+        const formData = new FormData(form);
+        const ja1Code = formData.get('ja1_code');
+        const ja1Year = formData.get('ja1_year');
+        const ja2Code = formData.get('ja2_code');
+        const ja2Year = formData.get('ja2_year');
+        
+        if (!ja1Code || !ja1Year || !ja2Code || !ja2Year) {
+            alert('すべての項目を選択してください。');
+            return;
+        }
+        
+        if (ja1Code === ja2Code && ja1Year === ja2Year) {
+            alert('異なるJAまたは年度を選択してください。');
+            return;
+        }
+        
+        // ローディング表示
+        loadingSpinner.style.display = 'block';
+        resultsDiv.style.display = 'none';
+        
+        try {
+            console.log('送信データ:', {
+                ja1_code: ja1Code,
+                ja1_year: parseInt(ja1Year),
+                ja2_code: ja2Code,
+                ja2_year: parseInt(ja2Year)
+            });
+            
+            const response = await fetch('/api/ja_comparison', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ja1_code: ja1Code,
+                    ja1_year: parseInt(ja1Year),
+                    ja2_code: ja2Code,
+                    ja2_year: parseInt(ja2Year)
+                })
+            });
+            
+            console.log('レスポンス状態:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('APIエラー:', errorText);
+                throw new Error(`比較データの取得に失敗しました: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('取得データ:', data);
+            displayComparisonResults(data);
+            
+        } catch (error) {
+            console.error('比較分析エラー:', error);
+            alert('比較分析中にエラーが発生しました: ' + error.message);
+        } finally {
+            loadingSpinner.style.display = 'none';
+        }
+    }
+    
+    function displayComparisonResults(data) {
+        // ヘッダー更新
+        document.getElementById('ja1Header').textContent = `${data.ja1_info.code} (${data.ja1_info.year}年度)`;
+        document.getElementById('ja2Header').textContent = `${data.ja2_info.code} (${data.ja2_info.year}年度)`;
+        
+        // レーダーチャート作成
+        createComparisonRadarChart(data);
+        
+        // 比較テーブル作成
+        createComparisonTable(data);
+        
+        // 結果表示
+        resultsDiv.style.display = 'block';
+    }
+    
+    function createComparisonRadarChart(data) {
+        const ctx = document.getElementById('comparisonRadarChart').getContext('2d');
+        
+        // 既存のチャートを破棄
+        if (window.comparisonChart) {
+            window.comparisonChart.destroy();
+        }
+        
+        const labels = ['収益性', '効率性', '安全性', 'キャッシュフロー', '流動性'];
+        
+        window.comparisonChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: `${data.ja1_info.code} (${data.ja1_info.year}年度)`,
+                    data: [
+                        data.ja1_scores.profitability,
+                        data.ja1_scores.efficiency,
+                        data.ja1_scores.safety,
+                        data.ja1_scores.cash_flow,
+                        data.ja1_scores.liquidity
+                    ],
+                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                    borderColor: 'rgba(102, 126, 234, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(102, 126, 234, 1)',
+                }, {
+                    label: `${data.ja2_info.code} (${data.ja2_info.year}年度)`,
+                    data: [
+                        data.ja2_scores.profitability,
+                        data.ja2_scores.efficiency,
+                        data.ja2_scores.safety,
+                        data.ja2_scores.cash_flow,
+                        data.ja2_scores.liquidity
+                    ],
+                    backgroundColor: 'rgba(118, 75, 162, 0.2)',
+                    borderColor: 'rgba(118, 75, 162, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(118, 75, 162, 1)',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 5,
+                        min: 1,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    },
+                    title: {
+                        display: true,
+                        text: 'JA財務リスク指標比較'
+                    }
+                }
+            }
+        });
+    }
+    
+    function createComparisonTable(data) {
+        const tbody = document.getElementById('comparisonTableBody');
+        tbody.innerHTML = '';
+        
+        const categories = [
+            { key: 'profitability', name: '収益性' },
+            { key: 'efficiency', name: '効率性' },
+            { key: 'safety', name: '安全性' },
+            { key: 'cash_flow', name: 'キャッシュフロー' },
+            { key: 'liquidity', name: '流動性' }
+        ];
+        
+        categories.forEach(category => {
+            const ja1Score = data.ja1_scores[category.key];
+            const ja2Score = data.ja2_scores[category.key];
+            const difference = ja2Score - ja1Score;
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><strong>${category.name}</strong></td>
+                <td><span class="risk-score risk-${ja1Score}">${ja1Score.toFixed(1)}</span></td>
+                <td><span class="risk-score risk-${ja2Score}">${ja2Score.toFixed(1)}</span></td>
+                <td class="comparison-difference ${difference > 0 ? 'difference-positive' : difference < 0 ? 'difference-negative' : 'difference-neutral'}">
+                    ${difference > 0 ? '+' : ''}${difference.toFixed(1)}
+                </td>
+                <td>${getComparisonEvaluation(difference)}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+    
+    function getComparisonEvaluation(difference) {
+        if (difference > 0.5) {
+            return '<span class="text-success"><i class="fas fa-arrow-up"></i> JA2が良好</span>';
+        } else if (difference < -0.5) {
+            return '<span class="text-danger"><i class="fas fa-arrow-down"></i> JA1が良好</span>';
+        } else {
+            return '<span class="text-muted"><i class="fas fa-minus"></i> 同程度</span>';
+        }
+    }
+});
+</script>
+{% endblock %}

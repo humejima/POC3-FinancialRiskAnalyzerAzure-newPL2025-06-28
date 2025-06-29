@@ -1,0 +1,1153 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="display-5 mb-3"><i class="fa-solid fa-code-fork"></i> 勘定科目マッピング</h1>
+        <p class="lead">取り込んだ勘定科目を標準勘定科目にマッピングします。</p>
+        <div class="d-flex gap-2 mt-2">
+            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#standardAccountsModal">
+                <i class="fa-solid fa-list"></i> 標準勘定科目一覧
+            </button>
+            <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#addStandardAccountModal">
+                <i class="fa-solid fa-plus"></i> 標準勘定科目追加
+            </button>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">JA・年度選択</h5>
+                <form action="{{ url_for('select_ja') }}" method="post" class="mt-2">
+                    <div class="mb-3">
+                        <label for="ja_code" class="form-label">JA</label>
+                        <select name="ja_code" id="ja_code" class="form-select">
+                            {% for ja in jas %}
+                            <option value="{{ ja.ja_code }}" {% if ja.ja_code == selected_ja_code %}selected{% endif %}>
+                                {{ ja.name }} ({{ ja.prefecture }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="year" class="form-label">年度</label>
+                        <select name="year" id="year" class="form-select">
+                            <option value="2025" {% if selected_year == 2025 %}selected{% endif %}>2025</option>
+                            <option value="2024" {% if selected_year == 2024 %}selected{% endif %}>2024</option>
+                            <option value="2023" {% if selected_year == 2023 %}selected{% endif %}>2023</option>
+                            <option value="2022" {% if selected_year == 2022 %}selected{% endif %}>2022</option>
+                            <option value="2021" {% if selected_year == 2021 %}selected{% endif %}>2021</option>
+                        </select>
+                    </div>
+                    <input type="hidden" name="redirect_url" value="{{ url_for('mapping', file_type=file_type) }}">
+                    <button type="submit" class="btn btn-secondary w-100">選択</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- File Type Tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item" style="width: 33.33%;">
+        <a class="nav-link {% if file_type == 'bs' %}active{% endif %}" href="{{ url_for('mapping', file_type='bs') }}" style="text-align: center;">
+            貸借対照表 (BS)
+        </a>
+    </li>
+    <li class="nav-item" style="width: 33.33%;">
+        <a class="nav-link {% if file_type == 'pl' %}active{% endif %}" href="{{ url_for('mapping', file_type='pl') }}" style="text-align: center;">
+            損益計算書 (PL)
+        </a>
+    </li>
+    <li class="nav-item" style="width: 33.33%;">
+        <a class="nav-link {% if file_type == 'cf' %}active{% endif %}" href="{{ url_for('mapping', file_type='cf') }}" style="text-align: center;">
+            CF計算書 (CF)
+        </a>
+    </li>
+</ul>
+
+<!-- View Mode Tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link {% if not show_all %}active{% endif %}" href="{{ url_for('mapping', file_type=file_type, show_all='false') }}">
+            マッピング管理
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if show_all %}active{% endif %}" href="{{ url_for('mapping', file_type=file_type, show_all='true') }}">
+            CSV全データ一覧
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="#standard-accounts-tab" data-bs-toggle="modal" data-bs-target="#standardAccountsModal">
+            標準勘定科目一覧
+        </a>
+    </li>
+
+</ul>
+
+{% if not show_all %}
+<!-- マッピング管理表示 -->
+<div class="row">
+    <!-- Mapping Card -->
+    <div class="col-md-5 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">勘定科目マッピング</h5>
+            </div>
+            <div class="card-body">
+                <!-- 完全一致マッピング -->
+                <div class="mb-4">
+                    <h6 class="fw-bold"><i class="fa-solid fa-equals"></i> 完全一致マッピング</h6>
+                    <p>標準勘定科目と完全に一致する名称の勘定科目を自動的にマッピングします。</p>
+                    
+                    <div class="d-flex gap-2 mb-3">
+                        <form action="{{ url_for('exact_match') }}" method="post">
+                            <input type="hidden" name="ja_code" value="{{ selected_ja_code }}">
+                            <input type="hidden" name="year" value="{{ selected_year }}">
+                            <input type="hidden" name="file_type" value="{{ file_type }}">
+                            
+                            <button type="submit" class="btn btn-outline-success">
+                                <i class="fa-solid fa-check"></i> 1件ずつ処理
+                            </button>
+                        </form>
+                        
+                        <form action="{{ url_for('batch_map') }}" method="post">
+                            <input type="hidden" name="ja_code" value="{{ selected_ja_code }}">
+                            <input type="hidden" name="year" value="{{ selected_year }}">
+                            <input type="hidden" name="file_type" value="{{ file_type }}">
+                            
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa-solid fa-database"></i> 直接SQL実行（20件ずつ）
+                            </button>
+                        </form>
+                    </div>
+                    <small class="form-text text-muted">処理に問題がある場合は「1件ずつ処理」を、効率を優先する場合は「直接SQL実行（20件ずつ）」を使用してください。直接SQLはORMの問題をバイパスして高速に動作します。</small>
+                </div>
+                
+                <hr>
+                
+                <!-- AIマッピング -->
+                <div class="mt-4">
+                    <h6 class="fw-bold"><i class="fa-solid fa-robot"></i> AI支援マッピング</h6>
+                    <p>AIを使って未マッピングの勘定科目を自動的にマッピングします。</p>
+                    
+                    <div id="ai-mapping-form-container">
+                        <div class="mb-3">
+                            <label for="confidence_threshold" class="form-label">類似度しきい値</label>
+                            <div class="d-flex align-items-center">
+                                <input type="range" class="form-range me-2" id="confidence_threshold" 
+                                       min="0.3" max="0.9" step="0.1" value="0.5">
+                                <span id="confidence_value">0.5</span>
+                            </div>
+                            <div class="form-text">低い値を設定するとより多くの勘定科目をマッピングできます。</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 単純化したAI支援マッピングのためのフォーム -->
+                    <form action="{{ url_for('ai_map') }}" method="post" id="mapping-form">
+                        <input type="hidden" name="ja_code" value="{{ selected_ja_code }}">
+                        <input type="hidden" name="year" value="{{ selected_year }}">
+                        <input type="hidden" name="file_type" value="{{ file_type }}">
+                        <input type="hidden" name="confidence_threshold" id="confidence_form_value" value="0.5">
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> AI自動マッピング実行
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- 参照マッピング -->
+                <div class="mt-4">
+                    <h6 class="fw-bold"><i class="fa-solid fa-copy"></i> 他JA参照マッピング</h6>
+                    <p>他のJAの既存マッピングデータを参照して未マッピングの科目を自動的にマッピングします。</p>
+                    
+                    <form action="{{ url_for('reference_map') }}" method="post" id="reference-mapping-form">
+                        <input type="hidden" name="ja_code" value="{{ selected_ja_code }}">
+                        <input type="hidden" name="year" value="{{ selected_year }}">
+                        <input type="hidden" name="file_type" value="{{ file_type }}">
+                        <input type="hidden" name="confidence_threshold" value="0.5">
+                        <input type="hidden" name="use_top_jas" value="true">
+                        
+                        <button type="submit" class="btn btn-success">
+                            <i class="fa-solid fa-clone"></i> 参照マッピング実行
+                        </button>
+                    </form>
+                    
+                    <script>
+                        // フォームが送信されたときのフィードバックを表示する簡易スクリプト
+                        document.addEventListener('DOMContentLoaded', function() {
+                            console.log('マッピングページの初期化を開始します');
+                            
+                            // スライダーの値を表示とフォーム値の連携
+                            const confidenceSlider = document.getElementById('confidence_threshold');
+                            const confidenceValue = document.getElementById('confidence_value');
+                            const confidenceFormValue = document.getElementById('confidence_form_value');
+                            
+                            if (confidenceSlider && confidenceValue && confidenceFormValue) {
+                                console.log('スライダーとフォーム値の連携を設定しました');
+                                confidenceSlider.addEventListener('input', function() {
+                                    const value = this.value;
+                                    confidenceValue.textContent = value;
+                                    confidenceFormValue.value = value;
+                                    console.log('スライダー値を更新:', value);
+                                });
+                            }
+                            
+                            // マッピングフォームの送信処理
+                            const mappingForm = document.getElementById('mapping-form');
+                            if (mappingForm) {
+                                console.log('マッピングフォームを検出しました');
+                                mappingForm.addEventListener('submit', function() {
+                                    console.log('マッピングフォームが送信されました。処理中...');
+                                    const button = mappingForm.querySelector('button[type="submit"]');
+                                    if (button) {
+                                        button.disabled = true;
+                                        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 処理中...';
+                                    }
+                                    
+                                    // フォームデータをログ出力（デバッグ用）
+                                    const formData = new FormData(mappingForm);
+                                    for (const [key, value] of formData.entries()) {
+                                        console.log(`フォームデータ: ${key} = ${value}`);
+                                    }
+                                    
+                                    // 標準のフォーム送信を続行（preventDefault不要）
+                                });
+                            }
+                        });
+                    </script>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fa-solid fa-info-circle"></i>
+                        自動マッピングは、勘定科目名の文字列類似度に基づいて最適な標準勘定科目を提案します。
+                        <strong>※高速化済み:</strong> 類似度しきい値を低く設定（0.3〜0.5）することで、より多くの勘定科目をマッピングできます。
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <!-- 個別AI推薦 -->
+                <div class="mt-4">
+                    <h6 class="fw-bold"><i class="fa-solid fa-magnifying-glass"></i> 個別AI推薦</h6>
+                    <p>特定の科目に対してAIの推薦を個別に確認する場合は、未マッピング科目一覧から「AI推薦」ボタンをクリックしてください。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Unmapped Accounts Card -->
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header">
+                <div style="display: grid; grid-template-columns: auto auto; align-items: center;">
+                    <h5 class="mb-0">未マッピング勘定科目</h5>
+                    <div style="text-align: right; display: flex; justify-content: flex-end; align-items: center;">
+                        {% if unmapped_accounts %}
+                        <span class="badge bg-warning me-3">{{ unmapped_accounts|length }}件</span>
+                        {% endif %}
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addStandardAccountModal">
+                            <i class="fa-solid fa-plus"></i> 標準勘定科目追加
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if unmapped_accounts %}
+                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                    <table class="table table-hover table-sm table-bordered" style="font-size: 0.75rem;">
+                        <thead>
+                            <tr>
+                                <th style="width: 40%">勘定科目名</th>
+                                <th style="width: 20%">金額</th>
+                                <th style="width: 40%">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for account in unmapped_accounts %}
+                            <tr id="account-row-{{ account.id }}">
+                                <td>{{ account.account_name }}</td>
+                                <td class="text-end">{{ "{:,.0f}".format(account.current_value) if account.current_value != None else "-" }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group" style="max-width: 100%; font-size: 0.75rem;">
+                                        <button class="btn btn-sm btn-outline-primary map-account-btn"
+                                                data-account-id="{{ account.id }}" 
+                                                data-account-name="{{ account.account_name }}"
+                                                style="font-size: 0.7rem; line-height: 1.2; margin: 0 1px; padding: 4px 6px;">
+                                            <i class="fas fa-link fa-xs me-1"></i>マッピング
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info ai-recommend-btn"
+                                                data-account-id="{{ account.id }}"
+                                                data-account-name="{{ account.account_name }}"
+                                                data-file-type="{{ file_type }}"
+                                                style="font-size: 0.7rem; line-height: 1.2; margin: 0 1px; padding: 4px 6px;">
+                                            <i class="fas fa-lightbulb fa-xs me-1"></i>AI推薦
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Finalize Mapping Form -->
+                <div class="card-footer bg-light">
+                    <form action="{{ url_for('finalize_mapping') }}" method="post" class="d-flex justify-content-end">
+                        <input type="hidden" name="ja_code" value="{{ selected_ja_code }}">
+                        <input type="hidden" name="year" value="{{ selected_year }}">
+                        <input type="hidden" name="file_type" value="{{ file_type }}">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fa-solid fa-check-circle"></i> マッピング確定
+                        </button>
+                    </form>
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <p class="text-muted">すべての勘定科目がマッピング済みです。または対象データがありません。</p>
+                    {% if existing_mappings %}
+                    <form action="{{ url_for('finalize_mapping') }}" method="post">
+                        <input type="hidden" name="ja_code" value="{{ selected_ja_code }}">
+                        <input type="hidden" name="year" value="{{ selected_year }}">
+                        <input type="hidden" name="file_type" value="{{ file_type }}">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fa-solid fa-check-circle"></i> マッピング確定
+                        </button>
+                    </form>
+                    {% else %}
+                    <a href="{{ url_for('data_import') }}" class="btn btn-primary">
+                        <i class="fa-solid fa-file-import"></i> データ取込へ
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Existing Mappings Card -->
+        <div class="card mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">マッピング済み勘定科目</h5>
+                <div>
+                    {% if existing_mappings %}
+                    <span class="badge bg-success me-2">{{ existing_mappings|length }}件</span>
+                    <form action="{{ url_for('delete_all_mappings') }}" method="post" class="d-inline" onsubmit="return confirm('現在の財務諸表タイプ（{{ file_type.upper() }}）のマッピング済み勘定科目をすべて削除してもよろしいですか？');">
+                        <input type="hidden" name="ja_code" value="{{ selected_ja_code }}">
+                        <input type="hidden" name="year" value="{{ selected_year }}">
+                        <input type="hidden" name="file_type" value="{{ file_type }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i> 全部削除
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if existing_mappings %}
+                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-hover table-sm table-bordered" style="font-size: 0.75rem;">
+                        <thead>
+                            <tr>
+                                <th style="width: 35%">元の勘定科目名</th>
+                                <th style="width: 15%">コード</th>
+                                <th style="width: 30%">標準科目名</th>
+                                <th style="width: 10%">信頼度</th>
+                                <th style="width: 10%">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mapping in existing_mappings %}
+                            <tr>
+                                <td>{{ mapping.original_account_name }}</td>
+                                <td>{{ mapping.standard_account_code }}</td>
+                                <td>{{ mapping.standard_account_name }}</td>
+                                <td>
+                                    {% if mapping.confidence > 0.9 %}
+                                    <span class="badge bg-success">高 ({{ "%.2f"|format(mapping.confidence) }})</span>
+                                    {% elif mapping.confidence > 0.7 %}
+                                    <span class="badge bg-info">中 ({{ "%.2f"|format(mapping.confidence) }})</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">低 ({{ "%.2f"|format(mapping.confidence) }})</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group" style="max-width: 100%; font-size: 0.75rem;">
+                                        <button class="btn btn-sm btn-outline-warning edit-mapping-btn p-0" title="編集"
+                                                data-mapping-id="{{ mapping.id }}"
+                                                data-original-name="{{ mapping.original_account_name }}"
+                                                data-standard-code="{{ mapping.standard_account_code }}"
+                                                style="font-size: 0.65rem; line-height: 1; margin: 0; padding: 3px !important;">
+                                            <i class="fa-solid fa-edit fa-xs"></i>
+                                        </button>
+                                        <form action="{{ url_for('delete_mapping') }}" method="post" class="d-inline">
+                                            <input type="hidden" name="ja_code" value="{{ selected_ja_code }}">
+                                            <input type="hidden" name="year" value="{{ selected_year }}">
+                                            <input type="hidden" name="file_type" value="{{ file_type }}">
+                                            <input type="hidden" name="original_account_name" value="{{ mapping.original_account_name }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger delete-mapping-btn p-0" title="削除"
+                                                   onclick="return confirm('このマッピングを削除して未マッピング状態に戻しますか？');"
+                                                   style="font-size: 0.65rem; line-height: 1; margin: 0; padding: 3px !important;">
+                                                <i class="fa-solid fa-trash fa-xs"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <p class="text-muted">マッピング済み勘定科目がありません。</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<!-- CSV全データ一覧表示 -->
+<div class="card">
+    <div class="card-header">
+        <div style="display: grid; grid-template-columns: auto auto; align-items: center;">
+            <h5 class="mb-0">CSV全データ一覧</h5>
+            <div style="text-align: right; display: flex; justify-content: flex-end; align-items: center;">
+                <span class="badge bg-primary me-3">{{ all_accounts|length }}件</span>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addStandardAccountModal">
+                    <i class="fa-solid fa-plus"></i> 標準勘定科目追加
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>行番号</th>
+                        <th>勘定科目名</th>
+                        <th>カテゴリ</th>
+                        <th>金額</th>
+                        <th>前年金額</th>
+                        <th>マッピング状態</th>
+                        <th>標準勘定科目</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for account in all_accounts %}
+                    <tr>
+                        <td>{{ account.row_number }}</td>
+                        <td>{{ account.account_name }}</td>
+                        <td>{{ account.category }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(account.current_value) if account.current_value != None else "-" }}</td>
+                        <td class="text-end">{{ "{:,.0f}".format(account.previous_value) if account.previous_value != None else "-" }}</td>
+                        <td>
+                            {% if account.is_mapped %}
+                            <span class="badge bg-success">マッピング済</span>
+                            {% else %}
+                            <span class="badge bg-warning">未マッピング</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if account.account_name in mapping_lookup %}
+                            {{ mapping_lookup[account.account_name].standard_account_code }} 
+                            ({{ mapping_lookup[account.account_name].standard_account_name }})
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Standard Accounts Modal -->
+<div class="modal fade" id="standardAccountsModal" tabindex="-1" aria-labelledby="standardAccountsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="modal-title" id="standardAccountsModalLabel">標準勘定科目一覧 ({{ file_type|upper }})</h5>
+                <div class="d-flex">
+                    <a href="#" class="btn btn-success me-3" onclick="switchToAddStandardAccount(); return false;">
+                        <i class="fa-solid fa-plus"></i> 標準勘定科目追加
+                    </a>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body">
+
+                
+                <div class="alert alert-info p-4 rounded mb-4">
+                    <div>
+                        <h5 class="fw-bold mb-1">{{ file_type|upper }}標準勘定科目一覧</h5>
+                        <p class="mb-0">標準勘定科目の編集はアクション列の編集ボタンから行えます</p>
+                    </div>
+                    <!-- キャッシュ対策用のボタンを追加 -->
+                    <div class="mt-2">
+                        <button class="btn btn-outline-primary btn-sm" 
+                                onclick="window.location.href='{{ url_for('mapping', file_type=file_type, refresh='true') }}'">
+                            <i class="fa-solid fa-sync"></i> 最新情報に更新
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="standardAccountsTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>コード</th>
+                                <th>標準勘定科目名</th>
+                                <th>上位科目コード</th>
+                                <th>タイプ</th>
+                                <th>カテゴリー</th>
+                                <th>説明</th>
+                                <th>アクション</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for account in standard_accounts %}
+                            <tr>
+                                <td>{{ account.code }}</td>
+                                <td>{{ account.name }}</td>
+                                <td>
+                                    {% if account.parent_code %}
+                                        {{ account.parent_code }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>{{ account.account_type }}</td>
+                                <td>{{ account.category }}</td>
+                                <td>{{ account.description }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-outline-warning edit-standard-account-btn" title="編集"
+                                            data-code="{{ account.code }}"
+                                            data-name="{{ account.name }}"
+                                            data-type="{{ account.account_type }}"
+                                            data-category="{{ account.category }}"
+                                            data-parent-code="{{ account.parent_code or '' }}"
+                                            data-display-order="{{ account.display_order }}"
+                                            data-description="{{ account.description }}">
+                                        <i class="fa-solid fa-edit"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Recommendation Modal -->
+<div class="modal fade" id="aiRecommendModal" tabindex="-1" aria-labelledby="aiRecommendModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="aiRecommendModalLabel">AIレコメンデーション</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="aiRecommendLoading" class="text-center my-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">AIによる分析中...</p>
+                </div>
+                <div id="aiRecommendError" class="alert alert-danger d-none">
+                    <i class="fa-solid fa-triangle-exclamation"></i> 
+                    <span id="aiRecommendErrorMessage">エラーが発生しました</span>
+                </div>
+                <div id="aiRecommendResult" class="d-none">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">元の勘定科目名</h6>
+                            <p id="aiOriginalAccount" class="lead"></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">AI信頼度</h6>
+                            <div id="aiConfidence"></div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <h6 class="fw-bold">推奨勘定科目コード</h6>
+                            <p id="aiRecommendCode" class="lead"></p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="fw-bold">推奨勘定科目名</h6>
+                            <p id="aiRecommendName" class="lead"></p>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="fw-bold">勘定科目タイプ</h6>
+                            <p id="aiRecommendType" class="lead"></p>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">AIの分析理由</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p id="aiRationale"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                <button type="button" id="apply-recommendation-btn" class="btn btn-primary d-none">
+                    <i class="fa-solid fa-check"></i> このレコメンドを適用
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manual Mapping Modal -->
+<div class="modal fade" id="mappingModal" tabindex="-1" aria-labelledby="mappingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mappingModalLabel">勘定科目マッピング</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="manual-mapping-form" action="{{ url_for('manual_map') }}" method="post">
+                    <input type="hidden" name="ja_code" value="{{ selected_ja_code }}">
+                    <input type="hidden" name="year" value="{{ selected_year }}">
+                    <input type="hidden" name="file_type" value="{{ file_type }}">
+                    <input type="hidden" id="account_id_input" name="account_id" value="">
+                    
+                    <div class="mb-3">
+                        <label for="original_account_name" class="form-label">元の勘定科目名</label>
+                        <input type="text" class="form-control" id="original_account_name" readonly>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="standard_account_code" class="form-label">標準勘定科目</label>
+                        <select name="standard_account_code" id="standard_account_code" class="form-select">
+                            <option value="">選択してください</option>
+                            {% for account in standard_accounts %}
+                            <option value="{{ account.code }}">{{ account.code }} - {{ account.name }} ({{ account.account_type }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <button type="button" id="save-mapping-btn" class="btn btn-primary">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ページロード時に強制的にキャッシュをクリアする機能は一時的に無効化
+/*
+(function() {
+    // キャッシュクリアのためのプラグイン
+    function clearBrowserCache() {
+        window.location.reload(true);
+    }
+    
+    // キャッシュパラメータを追加して強制リロード
+    function reloadWithTimestamp() {
+        var timestamp = new Date().getTime();
+        var url = window.location.href;
+        url = url.split('?')[0]; // URLからクエリパラメータを削除
+        window.location.href = url + '?nocache=' + timestamp;
+    }
+    
+    // ページが遷移した際に一度だけ実行
+    if (sessionStorage.getItem('pageReloaded') !== 'true') {
+        sessionStorage.setItem('pageReloaded', 'true');
+        reloadWithTimestamp();
+    }
+})();
+*/
+</script>
+
+<script>
+// モーダル切り替え関数
+function switchToAddStandardAccount() {
+    // 標準勘定科目一覧モーダルを取得
+    const standardAccountsModal = document.getElementById('standardAccountsModal');
+    const addStandardAccountModal = document.getElementById('addStandardAccountModal');
+    
+    // Bootstrapのモーダルインスタンスを取得
+    const standardModal = bootstrap.Modal.getInstance(standardAccountsModal);
+    
+    // 標準勘定科目一覧モーダルを閉じる
+    if (standardModal) {
+        standardModal.hide();
+    }
+    
+    // 少し遅延させて標準勘定科目追加モーダルを開く
+    setTimeout(function() {
+        const addModal = new bootstrap.Modal(addStandardAccountModal);
+        addModal.show();
+    }, 500);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Confidence slider
+    const confidenceSlider = document.getElementById('confidence_threshold');
+    const confidenceValue = document.getElementById('confidence_value');
+    
+    if (confidenceSlider && confidenceValue) {
+        confidenceSlider.addEventListener('input', function() {
+            confidenceValue.textContent = this.value;
+        });
+    }
+    
+    // Manual mapping modal
+    const mappingModal = new bootstrap.Modal(document.getElementById('mappingModal'));
+    const mapButtons = document.querySelectorAll('.map-account-btn');
+    const accountIdInput = document.getElementById('account_id_input');
+    const originalAccountInput = document.getElementById('original_account_name');
+    const saveButton = document.getElementById('save-mapping-btn');
+    const mappingForm = document.getElementById('manual-mapping-form');
+    
+    mapButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const accountId = this.getAttribute('data-account-id');
+            const accountName = this.getAttribute('data-account-name');
+            
+            accountIdInput.value = accountId;
+            originalAccountInput.value = accountName;
+            
+            mappingModal.show();
+        });
+    });
+
+    // 標準勘定科目追加ボタンのクリックイベント処理
+    const standardAccountsModal = new bootstrap.Modal(document.getElementById('standardAccountsModal'));
+    const addStandardAccountModal = new bootstrap.Modal(document.getElementById('addStandardAccountModal'));
+    const addStandardAccountButtons = document.querySelectorAll('.addStandardAccountBtn'); // フッターの追加ボタン
+    
+    // モーダル内のすべての標準勘定科目追加ボタンにイベントリスナーを追加
+    addStandardAccountButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            console.log('標準勘定科目追加ボタンがクリックされました');
+            // 標準勘定科目一覧モーダルを閉じる
+            standardAccountsModal.hide();
+            
+            // 少し遅延させて標準勘定科目追加モーダルを開く
+            setTimeout(function() {
+                addStandardAccountModal.show();
+            }, 500);
+        });
+    });
+    
+    // 標準勘定科目追加ボタンがページ内に複数ある場合の処理
+    const allAddButtons = document.querySelectorAll('[data-bs-target="#addStandardAccountModal"]');
+    allAddButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault(); // デフォルトのアンカー動作を防止
+            addStandardAccountModal.show();
+        });
+    });
+    
+    if (saveButton) {
+        saveButton.addEventListener('click', function() {
+            mappingForm.submit();
+        });
+    }
+    
+    // AI Recommendation modal
+    const aiRecommendModal = new bootstrap.Modal(document.getElementById('aiRecommendModal'));
+    const aiRecommendButtons = document.querySelectorAll('.ai-recommend-btn');
+    const applyRecommendationBtn = document.getElementById('apply-recommendation-btn');
+    
+    // AI recommendation behavior
+    aiRecommendButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const accountId = this.getAttribute('data-account-id');
+            const accountName = this.getAttribute('data-account-name');
+            const fileType = this.getAttribute('data-file-type');
+            
+            // Show loading state
+            document.getElementById('aiRecommendLoading').classList.remove('d-none');
+            document.getElementById('aiRecommendResult').classList.add('d-none');
+            document.getElementById('aiRecommendError').classList.add('d-none');
+            applyRecommendationBtn.classList.add('d-none');
+            
+            // Show the modal
+            aiRecommendModal.show();
+            
+            // Make AJAX request to get AI recommendation
+            console.log('Sending AI recommendation request for:', accountName, 'file type:', fileType);
+            
+            // Try to overcome the "Method Not Allowed" issue by using a URL query approach
+            const queryParams = new URLSearchParams({
+                account_name: accountName,
+                file_type: fileType
+            });
+            
+            // 本番用エンドポイントを使用
+            console.log('Sending request to AI recommendation endpoint...');
+            fetch(`/ai_recommendation?${queryParams.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('aiRecommendLoading').classList.add('d-none');
+                
+                if (data.success === true) {
+                    // Show results
+                    document.getElementById('aiRecommendResult').classList.remove('d-none');
+                    document.getElementById('aiOriginalAccount').textContent = accountName;
+                    document.getElementById('aiRecommendCode').textContent = data.recommendation.standard_account_code;
+                    document.getElementById('aiRecommendName').textContent = data.recommendation.standard_account_name;
+                    document.getElementById('aiRecommendType').textContent = data.recommendation.account_type || '-';
+                    document.getElementById('aiRationale').textContent = data.recommendation.rationale;
+                    
+                    // Set confidence badge
+                    const confidenceEl = document.getElementById('aiConfidence');
+                    const confidence = data.recommendation.confidence;
+                    
+                    let badgeClass = 'bg-warning';
+                    let confidenceText = '低';
+                    
+                    if (confidence > 0.9) {
+                        badgeClass = 'bg-success';
+                        confidenceText = '高';
+                    } else if (confidence > 0.7) {
+                        badgeClass = 'bg-info';
+                        confidenceText = '中';
+                    }
+                    
+                    confidenceEl.innerHTML = `<span class="badge ${badgeClass}">${confidenceText} (${(confidence * 100).toFixed(1)}%)</span>`;
+                    
+                    // Setup apply button
+                    applyRecommendationBtn.classList.remove('d-none');
+                    applyRecommendationBtn.onclick = function() {
+                        // Create form and submit
+                        const form = document.createElement('form');
+                        form.method = 'post';
+                        form.action = '/manual_map';
+                        form.style.display = 'none';
+                        
+                        const fields = {
+                            'ja_code': '{{ selected_ja_code }}',
+                            'year': '{{ selected_year }}',
+                            'file_type': fileType,
+                            'account_id': accountId,
+                            'standard_account_code': data.recommendation.standard_account_code
+                        };
+                        
+                        for (const key in fields) {
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = key;
+                            input.value = fields[key];
+                            form.appendChild(input);
+                        }
+                        
+                        document.body.appendChild(form);
+                        form.submit();
+                    };
+                } else {
+                    // Show error
+                    document.getElementById('aiRecommendError').classList.remove('d-none');
+                    document.getElementById('aiRecommendErrorMessage').textContent = data.error || 'AIレコメンデーションの取得中にエラーが発生しました。';
+                }
+            })
+            .catch(error => {
+                document.getElementById('aiRecommendLoading').classList.add('d-none');
+                document.getElementById('aiRecommendError').classList.remove('d-none');
+                document.getElementById('aiRecommendErrorMessage').textContent = 'サーバーエラーが発生しました。';
+                console.error('Error fetching AI recommendation:', error);
+            });
+        });
+    });
+    
+    // Edit mapping buttons
+    const editMappingButtons = document.querySelectorAll('.edit-mapping-btn');
+    
+    editMappingButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const originalName = this.getAttribute('data-original-name');
+            const standardCode = this.getAttribute('data-standard-code');
+            const accountId = this.getAttribute('data-account-id');
+            
+            // Set form values
+            originalAccountInput.value = originalName;
+            
+            if (accountId) {
+                accountIdInput.value = accountId;
+            } else {
+                // If not found, we're editing an existing mapping
+                // In a real app, this would use the mapping ID instead
+                accountIdInput.value = 'existing_' + originalName;
+            }
+            
+            // Select the right standard account
+            if (standardAccountSelect) {
+                for (let i = 0; i < standardAccountSelect.options.length; i++) {
+                    if (standardAccountSelect.options[i].value === standardCode) {
+                        standardAccountSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            mappingModal.show();
+        });
+    });
+    
+    // 標準勘定科目編集ボタンのイベントリスナー
+    const editButtons = document.querySelectorAll('.edit-standard-account-btn');
+    const editStandardAccountModal = new bootstrap.Modal(document.getElementById('editStandardAccountModal'));
+    
+    editButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const code = this.getAttribute('data-code');
+            const name = this.getAttribute('data-name');
+            const type = this.getAttribute('data-type');
+            const category = this.getAttribute('data-category');
+            const parentCode = this.getAttribute('data-parent-code');
+            const displayOrder = this.getAttribute('data-display-order');
+            const description = this.getAttribute('data-description');
+            
+            // フォームにデータをセット
+            document.getElementById('edit_original_code').value = code;
+            document.getElementById('edit_account_code').value = code;
+            document.getElementById('edit_account_name').value = name;
+            document.getElementById('edit_parent_code').value = parentCode || '';
+            document.getElementById('edit_account_category').value = category;
+            document.getElementById('edit_account_display_order').value = displayOrder;
+            document.getElementById('edit_account_description').value = description || '';
+            
+            // 勘定科目タイプのセレクトボックスを設定
+            const typeSelect = document.getElementById('edit_account_type');
+            for (let i = 0; i < typeSelect.options.length; i++) {
+                if (typeSelect.options[i].value === type) {
+                    typeSelect.selectedIndex = i;
+                    break;
+                }
+            }
+            
+            // モーダルを表示
+            editStandardAccountModal.show();
+        });
+    });
+    
+    // 標準勘定科目追加ボタンのイベントリスナー
+    const addStandardAccountForm = document.getElementById('add-standard-account-form');
+    if (addStandardAccountForm) {
+        addStandardAccountForm.addEventListener('submit', function(event) {
+            // フォーム送信前の検証
+            const codeInput = document.getElementById('new_account_code');
+            const nameInput = document.getElementById('new_account_name');
+            const typeInput = document.getElementById('new_account_type');
+            const categoryInput = document.getElementById('new_account_category');
+            
+            if (!codeInput.value || !nameInput.value || !typeInput.value || !categoryInput.value) {
+                event.preventDefault();
+                alert('必須項目をすべて入力してください。');
+                return false;
+            }
+            
+            // コードの形式チェック（数字のみ）
+            if (!/^\d+$/.test(codeInput.value)) {
+                event.preventDefault();
+                alert('コードは数字のみ入力可能です。');
+                return false;
+            }
+        });
+    }
+    
+    // 標準勘定科目編集フォームのバリデーション
+    const editStandardAccountForm = document.getElementById('edit-standard-account-form');
+    if (editStandardAccountForm) {
+        editStandardAccountForm.addEventListener('submit', function(event) {
+            // フォーム送信前の検証
+            const codeInput = document.getElementById('edit_account_code');
+            const nameInput = document.getElementById('edit_account_name');
+            const typeInput = document.getElementById('edit_account_type');
+            const categoryInput = document.getElementById('edit_account_category');
+            
+            if (!codeInput.value || !nameInput.value || !typeInput.value || !categoryInput.value) {
+                event.preventDefault();
+                alert('必須項目をすべて入力してください。');
+                return false;
+            }
+            
+            // コードの形式チェック（数字のみ）
+            if (!/^\d+$/.test(codeInput.value)) {
+                event.preventDefault();
+                alert('コードは数字のみ入力可能です。');
+                return false;
+            }
+        });
+    }
+});
+</script>
+
+<!-- 標準勘定科目編集モーダル -->
+<div class="modal fade" id="editStandardAccountModal" tabindex="-1" aria-labelledby="editStandardAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editStandardAccountModalLabel">標準勘定科目編集</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-standard-account-form" action="{{ url_for('edit_standard_account') }}" method="post">
+                    <input type="hidden" name="financial_statement" value="{{ file_type }}">
+                    <input type="hidden" name="original_code" id="edit_original_code">
+                    
+                    <div class="mb-3">
+                        <label for="edit_account_code" class="form-label">勘定科目コード <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_account_code" name="code" required>
+                        <div class="form-text">数字のみ入力可能です。既存のコードと重複しないようにしてください。</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_account_name" class="form-label">勘定科目名 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_account_name" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_parent_code" class="form-label">上位科目コード</label>
+                        <input type="text" class="form-control" id="edit_parent_code" name="parent_code">
+                        <div class="form-text">上位科目がある場合、その科目コードを入力してください。数字のみ入力可能です。</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_account_category" class="form-label">カテゴリ <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_account_category" name="category" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_account_type" class="form-label">勘定科目タイプ <span class="text-danger">*</span></label>
+                        <select class="form-select" id="edit_account_type" name="account_type" required>
+                            <option value="">選択してください</option>
+                            <option value="資産">資産</option>
+                            <option value="負債">負債</option>
+                            <option value="純資産">純資産</option>
+                            <option value="収益">収益</option>
+                            <option value="費用">費用</option>
+                            <option value="その他">その他</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_account_display_order" class="form-label">表示順</label>
+                        <input type="number" class="form-control" id="edit_account_display_order" name="display_order">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_account_description" class="form-label">説明</label>
+                        <textarea class="form-control" id="edit_account_description" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-save"></i> 保存
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 標準勘定科目追加モーダル -->
+<div class="modal fade" id="addStandardAccountModal" tabindex="-1" aria-labelledby="addStandardAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addStandardAccountModalLabel">標準勘定科目追加</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="add-standard-account-form" action="{{ url_for('add_standard_account') }}" method="post">
+                    <input type="hidden" name="financial_statement" value="{{ file_type }}">
+                    
+                    <div class="mb-3">
+                        <label for="new_account_code" class="form-label">勘定科目コード <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="new_account_code" name="code" placeholder="例: 1010" required>
+                        <div class="form-text">数字のみ入力可能です。既存のコードと重複しないようにしてください。</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_account_name" class="form-label">勘定科目名 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="new_account_name" name="name" placeholder="例: 現金" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_parent_code" class="form-label">上位科目コード</label>
+                        <input type="text" class="form-control" id="new_parent_code" name="parent_code" placeholder="例: 1000">
+                        <div class="form-text">上位科目がある場合、その科目コードを入力してください。数字のみ入力可能です。</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_account_category" class="form-label">カテゴリ <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="new_account_category" name="category" placeholder="例: 流動資産" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_account_type" class="form-label">勘定科目タイプ <span class="text-danger">*</span></label>
+                        <select class="form-select" id="new_account_type" name="account_type" required>
+                            <option value="">選択してください</option>
+                            <option value="資産">資産</option>
+                            <option value="負債">負債</option>
+                            <option value="純資産">純資産</option>
+                            <option value="収益">収益</option>
+                            <option value="費用">費用</option>
+                            <option value="その他">その他</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_account_display_order" class="form-label">表示順</label>
+                        <input type="number" class="form-control" id="new_account_display_order" name="display_order" placeholder="例: 100">
+                        <div class="form-text">省略するとコード順になります。</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_account_description" class="form-label">説明</label>
+                        <textarea class="form-control" id="new_account_description" name="description" rows="3" placeholder="勘定科目の説明や備考"></textarea>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fa-solid fa-plus"></i> 登録
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

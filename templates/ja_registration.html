@@ -1,0 +1,255 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<title>JA登録管理 - JA財務リスク分析システム</title>
+<!-- HTML直書きのスタイルを使用（ファイル参照なし、キャッシュなし） -->
+<style>
+/* テーブルレイアウトを使用して強制的に横並び */
+.registration-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 20px 0;
+    margin: 0;
+    padding: 0;
+}
+.registration-table td {
+    vertical-align: top;
+    padding: 0;
+    border: none;
+}
+.form-cell {
+    width: 30%;
+}
+.list-cell {
+    width: 70%;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="display-5 mb-3"><i class="fa-solid fa-building-columns"></i> JA登録管理</h1>
+            <p class="lead">JAの登録、編集、削除を行います。</p>
+        </div>
+    </div>
+
+    <!-- テーブルレイアウトを使った強制的な横並びレイアウト -->
+    <table class="registration-table mt-4">
+        <tr>
+            <td class="form-cell">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">新規JA登録</h5>
+                    </div>
+                <div class="card-body">
+                    <form action="{{ url_for('register_ja') }}" method="post">
+                        <div class="mb-3">
+                            <label for="ja_code" class="form-label">JAコード <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="ja_code" name="ja_code" placeholder="例: JA001" required>
+                            <div class="form-text">一意のJAコードを入力してください。既存のコードと重複しないようにしてください。</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="ja_name" class="form-label">JA名 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="ja_name" name="ja_name" placeholder="例: JA北海道" required>
+                            <div class="form-text">JA名を入力してください（例: JA北海道、JA南信州など）。</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="prefecture" class="form-label">都道府県 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="prefecture" name="prefecture" placeholder="例: 北海道" required>
+                            <div class="form-text">JAの所在都道府県を入力してください。</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="scale" class="form-label">規模</label>
+                            <select class="form-select" id="scale" name="scale">
+                                <option value="">規模を選択してください</option>
+                                <option value="大規模">大規模</option>
+                                <option value="中規模">中規模</option>
+                                <option value="小規模">小規模</option>
+                            </select>
+                            <div class="form-text">JAの規模を選択してください（任意）。</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">JAを登録</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+            </td>
+            <td class="list-cell">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">登録済みJA一覧</h5>
+                    </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>JAコード</th>
+                                    <th>JA名</th>
+                                    <th>都道府県</th>
+                                    <th>規模</th>
+                                    <th>データ</th>
+                                    <th>マッピング状況</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ja in jas %}
+                                <tr>
+                                    <td>{{ ja.ja_code }}</td>
+                                    <td>{{ ja.name }}</td>
+                                    <td>{{ ja.prefecture }}</td>
+                                    <td>{{ ja.scale or '未設定' }}</td>
+                                    <td>
+                                        {% if ja.available_data %}
+                                            {% set data_types = ja.available_data.split(',') %}
+                                            {% for data_type in data_types %}
+                                                <span class="badge bg-success">{{ data_type.upper() }}</span>
+                                            {% endfor %}
+                                            {% if ja_data_years and ja.ja_code in ja_data_years %}
+                                                <div class="mt-1">
+                                                    <small>取込年度: 
+                                                    {% for year in ja_data_years[ja.ja_code] %}
+                                                        <span class="badge bg-info">{{ year }}</span>
+                                                    {% endfor %}
+                                                    </small>
+                                                </div>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">なし</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if mapping_status and ja.ja_code in mapping_status %}
+                                            {% set ja_mapping = mapping_status[ja.ja_code] %}
+                                            {% for file_type, status in ja_mapping.items() %}
+                                                <div class="mb-1">
+                                                    <strong>{{ file_type.upper() }}:</strong>
+                                                    <span class="badge {% if status.mapped_count > 0 %}bg-success{% else %}bg-secondary{% endif %}">
+                                                        {{ status.mapped_count }}件
+                                                    </span>
+                                                </div>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">データなし</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group-vertical btn-group-sm" style="width: 100%;">
+                                            <div class="btn-group btn-group-sm mb-1">
+                                                <button type="button" class="btn btn-outline-primary"
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#editJaModal"
+                                                        data-ja-code="{{ ja.ja_code }}"
+                                                        data-ja-name="{{ ja.name }}"
+                                                        data-prefecture="{{ ja.prefecture }}"
+                                                        onclick="setEditModalData('{{ ja.ja_code }}', '{{ ja.name }}', '{{ ja.prefecture }}')">
+                                                    編集
+                                                </button>
+                                                <a href="{{ url_for('delete_ja', ja_code=ja.ja_code) }}"
+                                                   class="btn btn-outline-danger" 
+                                                   onclick="return confirm('JAコード {{ ja.ja_code }} ({{ ja.name }}) を削除してもよろしいですか？関連するすべてのデータも削除されます。')">
+                                                    削除
+                                                </a>
+                                            </div>
+                                            {% set latest_year = ja_data_years[ja.ja_code][0] if ja_data_years and ja.ja_code in ja_data_years and ja_data_years[ja.ja_code] else 2025 %}
+                                            <div class="d-flex flex-column gap-1 ja-nav-buttons">
+                                                <div class="d-flex gap-1">
+                                                    <a href="{{ url_for('index') }}?ja_code={{ ja.ja_code }}&year={{ latest_year }}"
+                                                       class="btn btn-success btn-sm flex-fill">
+                                                        <i class="fa-solid fa-gauge-high"></i> ダッシュボード
+                                                    </a>
+                                                    <a href="{{ url_for('mapping', file_type='bs') }}?ja_code={{ ja.ja_code }}&year={{ latest_year }}"
+                                                       class="btn btn-secondary btn-sm flex-fill">
+                                                        <i class="fa-solid fa-link"></i> マッピング
+                                                    </a>
+                                                </div>
+                                                <div class="d-flex gap-1">
+                                                    <a href="{{ url_for('account_balances') }}?ja_code={{ ja.ja_code }}&year={{ latest_year }}&financial_statement=bs"
+                                                       class="btn btn-info btn-sm flex-fill">
+                                                        <i class="fa-solid fa-list"></i> 残高一覧
+                                                    </a>
+                                                    <a href="{{ url_for('analysis') }}?ja_code={{ ja.ja_code }}&year={{ latest_year }}&type=liquidity"
+                                                       class="btn btn-warning btn-sm flex-fill">
+                                                        <i class="fa-solid fa-chart-line"></i> リスク分析
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<!-- 編集モーダル -->
+<div class="modal fade" id="editJaModal" tabindex="-1" aria-labelledby="editJaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editJaModalLabel">JA情報編集</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('update_ja') }}" method="post" id="editJaForm">
+                    <input type="hidden" id="edit_ja_code" name="ja_code">
+                    <div class="mb-3">
+                        <label for="edit_ja_name" class="form-label">JA名</label>
+                        <input type="text" class="form-control" id="edit_ja_name" name="ja_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_prefecture" class="form-label">都道府県</label>
+                        <input type="text" class="form-control" id="edit_prefecture" name="prefecture" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_scale" class="form-label">規模</label>
+                        <select class="form-select" id="edit_scale" name="scale">
+                            <option value="">規模を選択してください</option>
+                            <option value="大規模">大規模</option>
+                            <option value="中規模">中規模</option>
+                            <option value="小規模">小規模</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">更新</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 編集モーダルデータを設定する関数
+    function setEditModalData(jaCode, jaName, prefecture) {
+        document.getElementById('edit_ja_code').value = jaCode;
+        document.getElementById('edit_ja_name').value = jaName;
+        document.getElementById('edit_prefecture').value = prefecture;
+    }
+    
+    // DOMが完全に読み込まれた後に実行
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('JA登録画面が読み込まれました: ' + new Date().toISOString());
+        
+        // テーブルレイアウトの幅を強制的に設定
+        var formCell = document.querySelector('.form-cell');
+        var listCell = document.querySelector('.list-cell');
+        
+        if (formCell && listCell) {
+            // 横幅を強制的に設定
+            formCell.style.width = '30%';
+            listCell.style.width = '70%';
+            
+            console.log('レイアウト強制設定完了');
+        }
+    });
+</script>
+{% endblock %}

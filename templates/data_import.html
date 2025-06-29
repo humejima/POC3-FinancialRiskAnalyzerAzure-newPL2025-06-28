@@ -1,0 +1,316 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 mb-3"><i class="fa-solid fa-file-import"></i> データ取込</h1>
+        <p class="lead">財務データファイル（CSV/Excel）をアップロードして取り込みます。</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <!-- JA選択と会計年度 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">JA・会計年度選択</h5>
+            </div>
+            <div class="card-body">
+                <form id="ja_selection_form" action="{{ url_for('select_ja') }}" method="post">
+                    <div class="mb-3">
+                        <label for="ja_code" class="form-label">JA選択 <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <select name="ja_code" id="ja_code" class="form-select" required>
+                                {% for ja in jas %}
+                                <option value="{{ ja.ja_code }}" {% if ja.ja_code == selected_ja_code %}selected{% endif %}>{{ ja.name }} ({{ ja.prefecture }})</option>
+                                {% endfor %}
+                                <option value="new">新規JA登録...</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa-solid fa-check"></i> 選択
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="new_ja_fields" style="display: none;" class="border p-3 mb-3 bg-light">
+                        <h6 class="mb-3">新規JA登録情報</h6>
+                        <div class="mb-3">
+                            <label for="new_ja_code" class="form-label">JAコード <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="new_ja_code" name="new_ja_code" placeholder="例: JA123456">
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_ja_name" class="form-label">JA名 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="new_ja_name" name="new_ja_name" placeholder="例: JAいちのみや">
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_prefecture" class="form-label">都道府県 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="new_prefecture" name="new_prefecture" placeholder="例: 愛知県">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="year" class="form-label">会計年度 <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="year" name="year" value="{{ selected_year }}" required min="2000" max="2100">
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- BS取込 -->
+        <div class="card mb-4 data-import-bs">
+            <div class="card-header bg-primary text-white" style="background-color: #0d6efd !important; color: white !important; min-width: 250px;">
+                <h5 class="mb-0" style="min-height: 28px; display: flex; align-items: center;">BS取込（貸借対照表）</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('upload_data') }}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="ja_code" id="bs_ja_code" value="{{ selected_ja_code }}">
+                    <input type="hidden" name="new_ja_code" id="bs_new_ja_code">
+                    <input type="hidden" name="new_ja_name" id="bs_new_ja_name">
+                    <input type="hidden" name="new_prefecture" id="bs_new_prefecture">
+                    <input type="hidden" name="year" id="bs_year" value="{{ selected_year }}">
+                    <input type="hidden" name="file_type" value="bs">
+                    
+                    <div class="mb-3">
+                        <label for="bs_file" class="form-label">BSファイル選択 <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="file" class="form-control" id="bs_file" name="file" accept=".csv,.xlsx,.xls" required>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa-solid fa-upload"></i> 取込
+                            </button>
+                        </div>
+                        <div class="form-text">CSV, Excel (xlsx, xls) 形式に対応しています。</div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- PL取込 -->
+        <div class="card mb-4 data-import-pl">
+            <div class="card-header bg-success text-white" style="background-color: #198754 !important; color: white !important; min-width: 250px;">
+                <h5 class="mb-0" style="min-height: 28px; display: flex; align-items: center;">PL取込（損益計算書）</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('upload_data') }}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="ja_code" id="pl_ja_code" value="{{ selected_ja_code }}">
+                    <input type="hidden" name="new_ja_code" id="pl_new_ja_code">
+                    <input type="hidden" name="new_ja_name" id="pl_new_ja_name">
+                    <input type="hidden" name="new_prefecture" id="pl_new_prefecture">
+                    <input type="hidden" name="year" id="pl_year" value="{{ selected_year }}">
+                    <input type="hidden" name="file_type" value="pl">
+                    
+                    <div class="mb-3">
+                        <label for="pl_file" class="form-label">PLファイル選択 <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="file" class="form-control" id="pl_file" name="file" accept=".csv,.xlsx,.xls" required>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fa-solid fa-upload"></i> 取込
+                            </button>
+                        </div>
+                        <div class="form-text">CSV, Excel (xlsx, xls) 形式に対応しています。</div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- CF取込 -->
+        <div class="card data-import-cf">
+            <div class="card-header bg-info text-white" style="background-color: #0dcaf0 !important; color: black !important; min-width: 250px;">
+                <h5 class="mb-0" style="min-height: 28px; display: flex; align-items: center;">CF取込（CF計算書）</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('upload_data') }}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="ja_code" id="cf_ja_code" value="{{ selected_ja_code }}">
+                    <input type="hidden" name="new_ja_code" id="cf_new_ja_code">
+                    <input type="hidden" name="new_ja_name" id="cf_new_ja_name">
+                    <input type="hidden" name="new_prefecture" id="cf_new_prefecture">
+                    <input type="hidden" name="year" id="cf_year" value="{{ selected_year }}">
+                    <input type="hidden" name="file_type" value="cf">
+                    
+                    <div class="mb-3">
+                        <label for="cf_file" class="form-label">CFファイル選択 <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="file" class="form-control" id="cf_file" name="file" accept=".csv,.xlsx,.xls" required>
+                            <button type="submit" class="btn btn-info">
+                                <i class="fa-solid fa-upload"></i> 取込
+                            </button>
+                        </div>
+                        <div class="form-text">CSV, Excel (xlsx, xls) 形式に対応しています。</div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <!-- Data Status Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">データ取込状況</h5>
+            </div>
+            <div class="card-body">
+                <h6 class="card-subtitle mb-3 text-muted">選択中のJA：{{ selected_ja_code }}</h6>
+                
+                <div class="list-group">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        貸借対照表 (BS)
+                        {% if data_availability.bs %}
+                        <span class="badge bg-success rounded-pill">取込済</span>
+                        {% else %}
+                        <span class="badge bg-secondary rounded-pill">未取込</span>
+                        {% endif %}
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        損益計算書 (PL)
+                        {% if data_availability.pl %}
+                        <span class="badge bg-success rounded-pill">取込済</span>
+                        {% else %}
+                        <span class="badge bg-secondary rounded-pill">未取込</span>
+                        {% endif %}
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        キャッシュフロー計算書 (CF)
+                        {% if data_availability.cf %}
+                        <span class="badge bg-success rounded-pill">取込済</span>
+                        {% else %}
+                        <span class="badge bg-secondary rounded-pill">未取込</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fa-solid fa-info-circle"></i>
+                    ファイルをアップロードすると、既存のデータは上書きされます。
+                </div>
+            </div>
+        </div>
+        
+        <!-- Instructions Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">データ取込手順</h5>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li class="mb-2">JAと会計年度を選択します。</li>
+                    <li class="mb-2">CSVまたはExcelファイルを選択します。</li>
+                    <li class="mb-2">取込む財務諸表に対応したボタン（BS/PL/CF）をクリックします。</li>
+                    <li class="mb-2">取込結果を確認し、エラーがあれば修正します。</li>
+                </ol>
+                
+                <div class="alert alert-warning">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <strong>注意：</strong> ファイルは以下の形式である必要があります：
+                    <ul class="mb-0 mt-2">
+                        <li>勘定科目名を含む列があること</li>
+                        <li>当年度値と前年度値の列があること</li>
+                        <li>合計行が含まれていること</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Show/hide new JA fields based on selection
+    const jaSelect = document.getElementById('ja_code');
+    const newJaFields = document.getElementById('new_ja_fields');
+    
+    // 初期状態の確認と設定
+    if (jaSelect.value === 'new') {
+        newJaFields.style.display = 'block';
+    }
+    
+    // select要素の変更イベント
+    jaSelect.addEventListener('change', function() {
+        console.log('JA選択変更:', this.value);
+        
+        if (this.value === 'new') {
+            newJaFields.style.display = 'block';
+        } else {
+            newJaFields.style.display = 'none';
+        }
+        
+        // 各フォームのJAコード値を更新
+        if (document.getElementById('bs_ja_code')) {
+            document.getElementById('bs_ja_code').value = this.value;
+        }
+        if (document.getElementById('pl_ja_code')) {
+            document.getElementById('pl_ja_code').value = this.value;
+        }
+        if (document.getElementById('cf_ja_code')) {
+            document.getElementById('cf_ja_code').value = this.value;
+        }
+    });
+    
+    // 新規JA登録フィールドの変更を各フォームに反映
+    const newJaCode = document.getElementById('new_ja_code');
+    const newJaName = document.getElementById('new_ja_name');
+    const newPrefecture = document.getElementById('new_prefecture');
+    const year = document.getElementById('year');
+    
+    if (newJaCode) {
+        newJaCode.addEventListener('input', function() {
+            if (document.getElementById('bs_new_ja_code')) {
+                document.getElementById('bs_new_ja_code').value = this.value;
+            }
+            if (document.getElementById('pl_new_ja_code')) {
+                document.getElementById('pl_new_ja_code').value = this.value;
+            }
+            if (document.getElementById('cf_new_ja_code')) {
+                document.getElementById('cf_new_ja_code').value = this.value;
+            }
+        });
+    }
+    
+    if (newJaName) {
+        newJaName.addEventListener('input', function() {
+            if (document.getElementById('bs_new_ja_name')) {
+                document.getElementById('bs_new_ja_name').value = this.value;
+            }
+            if (document.getElementById('pl_new_ja_name')) {
+                document.getElementById('pl_new_ja_name').value = this.value;
+            }
+            if (document.getElementById('cf_new_ja_name')) {
+                document.getElementById('cf_new_ja_name').value = this.value;
+            }
+        });
+    }
+    
+    if (newPrefecture) {
+        newPrefecture.addEventListener('input', function() {
+            if (document.getElementById('bs_new_prefecture')) {
+                document.getElementById('bs_new_prefecture').value = this.value;
+            }
+            if (document.getElementById('pl_new_prefecture')) {
+                document.getElementById('pl_new_prefecture').value = this.value;
+            }
+            if (document.getElementById('cf_new_prefecture')) {
+                document.getElementById('cf_new_prefecture').value = this.value;
+            }
+        });
+    }
+    
+    if (year) {
+        year.addEventListener('input', function() {
+            if (document.getElementById('bs_year')) {
+                document.getElementById('bs_year').value = this.value;
+            }
+            if (document.getElementById('pl_year')) {
+                document.getElementById('pl_year').value = this.value;
+            }
+            if (document.getElementById('cf_year')) {
+                document.getElementById('cf_year').value = this.value;
+            }
+        });
+    }
+    
+    // デバッグ用のコンソールログ
+    console.log('JAデータ取込ページが読み込まれました');
+});
+</script>
+{% endblock %}

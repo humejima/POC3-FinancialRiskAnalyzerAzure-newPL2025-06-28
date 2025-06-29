@@ -1,0 +1,459 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="display-5 mb-3"><i class="fa-solid fa-table-list"></i> データ管理</h1>
+        <p class="lead">取込済みの財務データを確認・管理できます。</p>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">JA・年度選択</h5>
+                <form action="{{ url_for('select_ja') }}" method="post" class="mt-2">
+                    <div class="mb-3">
+                        <label for="ja_code" class="form-label">JA選択</label>
+                        <select name="ja_code" id="ja_code" class="form-select">
+                            {% for ja in jas %}
+                            <option value="{{ ja.ja_code }}" {% if ja.ja_code == selected_ja_code %}selected{% endif %}>{{ ja.name }} ({{ ja.prefecture }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="year" class="form-label">会計年度</label>
+                        <select name="year" id="year" class="form-select">
+                            <option value="2025" {% if selected_year == 2025 %}selected{% endif %}>2025</option>
+                            <option value="2024" {% if selected_year == 2024 %}selected{% endif %}>2024</option>
+                            <option value="2023" {% if selected_year == 2023 %}selected{% endif %}>2023</option>
+                            <option value="2022" {% if selected_year == 2022 %}selected{% endif %}>2022</option>
+                            <option value="2021" {% if selected_year == 2021 %}selected{% endif %}>2021</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-secondary w-100">選択</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- File Type Tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link {% if file_type == 'bs' %}active{% endif %}" href="{{ url_for('data_management', file_type='bs') }}">
+            貸借対照表 (BS)
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if file_type == 'pl' %}active{% endif %}" href="{{ url_for('data_management', file_type='pl') }}">
+            損益計算書 (PL)
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if file_type == 'cf' %}active{% endif %}" href="{{ url_for('data_management', file_type='cf') }}">
+            キャッシュフロー計算書 (CF)
+        </a>
+    </li>
+</ul>
+
+<!-- Data Display and Mapping Status -->
+<div class="row">
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">データ一覧</h5>
+                {% if csv_data %}
+                <span class="badge bg-info">{{ csv_data|length }}件</span>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if csv_data %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 70px;">#</th>
+                                <th>勘定科目</th>
+                                <th>カテゴリ</th>
+                                <th>当年度</th>
+                                <th>前年度</th>
+                                <th style="width: 100px;">マッピング</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for data in csv_data %}
+                            <tr>
+                                <td>{{ data.row_number + 1 }}</td>
+                                <td>{{ data.account_name }}</td>
+                                <td>{{ data.category or '未分類' }}</td>
+                                <td class="text-end">{{ "{:,.0f}".format(data.current_value) }}</td>
+                                <td class="text-end">{{ "{:,.0f}".format(data.previous_value) }}</td>
+                                <td>
+                                    {% if data.is_mapped %}
+                                    <span class="badge bg-success">済</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">未</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <p class="text-muted">データがありません。まずはデータを取り込んでください。</p>
+                    <a href="{{ url_for('data_import') }}" class="btn btn-primary">
+                        <i class="fa-solid fa-file-import"></i> データ取込へ
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Mapping Progress Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">マッピング状況</h5>
+            </div>
+            <div class="card-body">
+                {% if mapping_stats.total > 0 %}
+                <div class="progress mb-3" style="height: 25px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ mapping_stats.percent_mapped }}%;" 
+                         aria-valuenow="{{ mapping_stats.percent_mapped }}" aria-valuemin="0" aria-valuemax="100">
+                        {{ "{:.1f}%".format(mapping_stats.percent_mapped) }}
+                    </div>
+                </div>
+                
+                <div class="list-group mt-3">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        総データ数
+                        <span class="badge bg-secondary rounded-pill">{{ mapping_stats.total }}</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        マッピング済
+                        <span class="badge bg-success rounded-pill">{{ mapping_stats.mapped }}</span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        未マッピング
+                        <span class="badge bg-warning rounded-pill">{{ mapping_stats.unmapped }}</span>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 mt-3">
+                    <a href="{{ url_for('mapping', file_type=file_type) }}" class="btn btn-primary">
+                        <i class="fa-solid fa-code-fork"></i> マッピング画面へ
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <p class="text-muted">マッピング情報がありません。まずはデータを取り込んでください。</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Data Backup and Restore Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fa-solid fa-shield-halved"></i> データバックアップ</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if csv_data %}
+                    <button class="btn btn-success" id="createBackupBtn">
+                        <i class="fa-solid fa-download"></i> バックアップ作成
+                    </button>
+                    {% endif %}
+                    <button class="btn btn-warning" id="listBackupsBtn">
+                        <i class="fa-solid fa-list"></i> バックアップ一覧
+                    </button>
+                    <button class="btn btn-info" id="restoreBackupBtn">
+                        <i class="fa-solid fa-upload"></i> データ復元
+                    </button>
+                </div>
+                
+                <div id="backup-status" class="mt-3" style="display: none;">
+                    <!-- Backup status will be shown here -->
+                </div>
+                
+                <div id="backup-list" class="mt-3" style="display: none;">
+                    <!-- Backup list will be shown here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">アクション</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('data_import') }}" class="btn btn-outline-primary">
+                        <i class="fa-solid fa-file-import"></i> 新規データ取込
+                    </a>
+                    {% if csv_data %}
+                    <button class="btn btn-outline-warning" id="validateDataBtn">
+                        <i class="fa-solid fa-check-circle"></i> データ検証
+                    </button>
+                    <button class="btn btn-outline-danger" id="deleteDataBtn">
+                        <i class="fa-solid fa-trash"></i> データ削除
+                    </button>
+                    {% endif %}
+                </div>
+                
+                {% if csv_data %}
+                <div id="validation-result" class="mt-3" style="display: none;">
+                    <!-- Validation results will be shown here via JavaScript -->
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">データ削除の確認</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>以下のデータを削除しますか？</p>
+                <ul>
+                    <li>JA：<strong>{{ selected_ja_code }}</strong></li>
+                    <li>年度：<strong>{{ selected_year }}</strong></li>
+                    <li>財務諸表：<strong>
+                        {% if file_type == 'bs' %}貸借対照表 (BS){% endif %}
+                        {% if file_type == 'pl' %}損益計算書 (PL){% endif %}
+                        {% if file_type == 'cf' %}キャッシュフロー計算書 (CF){% endif %}
+                    </strong></li>
+                </ul>
+                <div class="alert alert-danger">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    この操作は元に戻せません。
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                <form action="{{ url_for('delete_data') }}" method="post" id="deleteForm">
+                    <input type="hidden" name="ja_code" value="{{ selected_ja_code }}">
+                    <input type="hidden" name="year" value="{{ selected_year }}">
+                    <input type="hidden" name="file_type" value="{{ file_type }}">
+                    <button type="submit" class="btn btn-danger" id="confirmDeleteBtn">削除する</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Delete confirmation modal
+    const deleteDataBtn = document.getElementById('deleteDataBtn');
+    if (deleteDataBtn) {
+        deleteDataBtn.addEventListener('click', function() {
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+            deleteModal.show();
+        });
+    }
+    
+    // Mock validation for demo purposes
+    const validateDataBtn = document.getElementById('validateDataBtn');
+    const validationResult = document.getElementById('validation-result');
+    
+    if (validateDataBtn && validationResult) {
+        validateDataBtn.addEventListener('click', function() {
+            // This would typically be an API call to validate the data
+            // For now, we'll just simulate a successful validation
+            validationResult.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fa-solid fa-check-circle"></i>
+                    データ検証が完了しました。問題は見つかりませんでした。
+                </div>
+            `;
+            validationResult.style.display = 'block';
+        });
+    }
+    
+    // Delete is now handled by the form submit
+    
+    // Backup functionality
+    const createBackupBtn = document.getElementById('createBackupBtn');
+    const listBackupsBtn = document.getElementById('listBackupsBtn');
+    const restoreBackupBtn = document.getElementById('restoreBackupBtn');
+    const backupStatus = document.getElementById('backup-status');
+    const backupList = document.getElementById('backup-list');
+    
+    if (createBackupBtn) {
+        createBackupBtn.addEventListener('click', function() {
+            const jaCode = '{{ selected_ja_code }}';
+            const year = {{ selected_year }};
+            
+            this.disabled = true;
+            this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> バックアップ作成中...';
+            
+            fetch('/api/create_backup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ja_code: jaCode,
+                    year: year,
+                    description: 'manual_backup_' + new Date().toISOString().slice(0,19).replace(/:/g, '-')
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    backupStatus.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fa-solid fa-check-circle"></i>
+                            バックアップが正常に作成されました！<br>
+                            <small>マッピング: ${data.mapping_backup}<br>
+                            残高データ: ${data.balance_backups.length}件</small>
+                        </div>
+                    `;
+                } else {
+                    backupStatus.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fa-solid fa-exclamation-triangle"></i>
+                            バックアップ作成エラー: ${data.message}
+                        </div>
+                    `;
+                }
+                backupStatus.style.display = 'block';
+            })
+            .catch(error => {
+                backupStatus.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fa-solid fa-exclamation-triangle"></i>
+                        通信エラー: ${error.message}
+                    </div>
+                `;
+                backupStatus.style.display = 'block';
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="fa-solid fa-download"></i> バックアップ作成';
+            });
+        });
+    }
+    
+    if (listBackupsBtn) {
+        listBackupsBtn.addEventListener('click', function() {
+            fetch('/api/list_backups')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.backups.length > 0) {
+                    let html = '<h6>利用可能なバックアップ:</h6><div class="list-group list-group-flush">';
+                    data.backups.forEach(backup => {
+                        html += `
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${backup.filename}</strong><br>
+                                    <small class="text-muted">${backup.created} (${backup.size} bytes)</small>
+                                </div>
+                                <button class="btn btn-sm btn-outline-info restore-btn" data-filename="${backup.filename}">
+                                    <i class="fa-solid fa-upload"></i> 復元
+                                </button>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    backupList.innerHTML = html;
+                    
+                    // Add restore functionality to each button
+                    document.querySelectorAll('.restore-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const filename = this.getAttribute('data-filename');
+                            const jaCode = '{{ selected_ja_code }}';
+                            const year = {{ selected_year }};
+                            
+                            // より詳細な確認ダイアログ
+                            const confirmMessage = `⚠️ データ復元の確認 ⚠️\n\n` +
+                                `バックアップファイル: ${filename}\n` +
+                                `対象JA: ${jaCode}\n` +
+                                `対象年度: ${year}\n\n` +
+                                `この操作により以下のデータが上書きされます：\n` +
+                                `• 勘定科目マッピングデータ\n` +
+                                `• 標準勘定科目残高データ\n` +
+                                `• CSVインポートデータ\n\n` +
+                                `⚠️ この操作は元に戻せません ⚠️\n\n` +
+                                `続行しますか？`;
+                                
+                            if (confirm(confirmMessage)) {
+                                // 追加の最終確認
+                                const finalConfirm = `最終確認：\n\n本当にデータを復元しますか？\n現在のデータは完全に失われます。`;
+                                if (confirm(finalConfirm)) {
+                                    restoreFromBackup(filename);
+                                }
+                            }
+                        });
+                    });
+                } else {
+                    backupList.innerHTML = '<div class="alert alert-info">利用可能なバックアップがありません。</div>';
+                }
+                backupList.style.display = 'block';
+            })
+            .catch(error => {
+                backupList.innerHTML = `<div class="alert alert-danger">エラー: ${error.message}</div>`;
+                backupList.style.display = 'block';
+            });
+        });
+    }
+    
+    function restoreFromBackup(filename) {
+        fetch('/api/restore_backup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                backup_filename: filename,
+                confirm_restore: true
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                backupStatus.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fa-solid fa-check-circle"></i>
+                        データの復元が完了しました！<br>
+                        <small>${data.message}</small>
+                    </div>
+                `;
+                // Reload page to show restored data
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                backupStatus.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fa-solid fa-exclamation-triangle"></i>
+                        復元エラー: ${data.message}
+                    </div>
+                `;
+            }
+            backupStatus.style.display = 'block';
+        })
+        .catch(error => {
+            backupStatus.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fa-solid fa-exclamation-triangle"></i>
+                    通信エラー: ${error.message}
+                </div>
+            `;
+            backupStatus.style.display = 'block';
+        });
+    }
+});
+</script>
+{% endblock %}

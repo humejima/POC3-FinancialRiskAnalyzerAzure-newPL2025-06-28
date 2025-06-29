@@ -1,0 +1,459 @@
+/* Custom CSS for JA Financial Risk Analysis System */
+
+/* JA登録管理画面のナビゲーションボタン統一スタイル */
+.ja-nav-buttons .btn {
+    min-width: 120px;
+    max-width: 120px;
+    width: 120px !important;
+    white-space: nowrap;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ja-nav-buttons .d-flex {
+    width: 100%;
+    justify-content: space-between;
+}
+
+.ja-nav-buttons .flex-fill {
+    flex: 0 0 120px;
+}
+
+/* JA登録管理画面の編集・削除ボタン統一スタイル */
+.btn-group .btn {
+    min-width: 60px;
+    max-width: 60px;
+    width: 60px !important;
+    white-space: nowrap;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 安全性指標グラフ用スタイル */
+.safety-indicator-chart canvas {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+/* 指標グラフのバー表示を明るく */
+.indicator-chart-container {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+/* レーダーチャートのメモリ線表示用 */
+.chart-container {
+    position: relative;
+    margin: 0 auto;
+}
+
+/* メモリ線をオーバーレイとして表示（無効化）*/
+.chart-container::before {
+    /* 無効化：Chart.jsの描画と競合する */
+    content: none;
+}
+
+/* カスタムラベルをオーバーレイとして表示（無効化） */
+.chart-labels, .manual-chart-labels {
+    display: none; /* 完全に非表示化 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 30;
+}
+
+.chart-label, .manual-chart-label {
+    display: none; /* 完全に非表示化 */
+    position: absolute;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    background-color: rgba(0,0,0,0.7);
+    padding: 3px 8px;
+    border-radius: 3px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    z-index: 30;
+    white-space: nowrap;
+}
+
+.chart-label.top, .manual-chart-label.top {
+    top: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.chart-label.right, .manual-chart-label.right {
+    top: 40%;
+    right: 10%;
+}
+
+.chart-label.bottom-right, .manual-chart-label.bottom-right {
+    bottom: 25%;
+    right: 15%;
+}
+
+.chart-label.left, .manual-chart-label.left {
+    top: 40%;
+    left: 10%;
+}
+
+.chart-label.bottom-left, .manual-chart-label.bottom-left {
+    bottom: 25%;
+    left: 15%;
+}
+
+/* BS合計科目のスタイル - 最も強力なセレクタとインライン上書き */
+/* ブラウザコンソールで確認したBootstrapスタイルとの競合を完全に上書き */
+tr[data-code="2900"] td,
+tr[data-code="4900"] td, 
+tr[data-code="5900"] td,
+tr[data-code="5950"] td,
+tr[data-code="5951"] td {
+    box-shadow: 0 -2px 0 #333, 0 2px 0 #333 !important;
+    position: relative !important;
+    z-index: 1 !important;
+    background-color: rgba(0,0,0,0.05) !important;
+}
+
+/* Dark theme overrides */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Card styling */
+.card {
+    margin-bottom: 1.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+    font-weight: 500;
+}
+
+/* Card headers with background colors - Bootstrap Dark Theme Override */
+/* 非常に高い詳細度を持つセレクタを使用して確実に上書き */
+html[data-bs-theme="dark"] .card-header.bg-primary,
+html[data-bs-theme="dark"] .card.data-import-bs .card-header,
+html[data-bs-theme="dark"] [class*="data-import-bs"] .card-header {
+    background-color: #0d6efd !important;
+    color: white !important;
+    border-bottom: none !important;
+}
+
+html[data-bs-theme="dark"] .card-header.bg-success,
+html[data-bs-theme="dark"] .card.data-import-pl .card-header,
+html[data-bs-theme="dark"] [class*="data-import-pl"] .card-header {
+    background-color: #198754 !important;
+    color: white !important;
+    border-bottom: none !important;
+}
+
+html[data-bs-theme="dark"] .card-header.bg-info,
+html[data-bs-theme="dark"] .card.data-import-cf .card-header,
+html[data-bs-theme="dark"] [class*="data-import-cf"] .card-header {
+    background-color: #0dcaf0 !important;
+    color: black !important; /* 水色背景には黒テキストが読みやすい */
+    border-bottom: none !important;
+}
+
+/* インラインスタイルを使用するバックアッププラン */
+.bs-card-header {
+    background-color: #0d6efd !important;
+    color: white !important;
+}
+
+.pl-card-header {
+    background-color: #198754 !important;
+    color: white !important;
+}
+
+.cf-card-header {
+    background-color: #0dcaf0 !important;
+    color: black !important;
+}
+
+/* Table styling enhancements */
+.table-hover tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Risk indicator colors */
+.risk-high {
+    color: #dc3545;
+}
+
+.risk-medium-high {
+    color: #fd7e14;
+}
+
+.risk-medium {
+    color: #ffc107;
+}
+
+.risk-medium-low {
+    color: #20c997;
+}
+
+.risk-low {
+    color: #28a745;
+}
+
+/* Chart container */
+.chart-container {
+    position: relative;
+    margin: auto;
+    width: 100%;
+    /* 高さはJavaScriptで動的に設定 */
+}
+
+/* Badge styling */
+.badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+}
+
+/* Custom scrollbar for tables */
+.table-responsive::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #2c2c2c;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
+
+/* Animated progress bar */
+@keyframes progress-animation {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.progress-bar {
+    transition: width 0.5s ease;
+}
+
+/* Print styles */
+@media print {
+    body {
+        background-color: white;
+        color: black;
+    }
+    
+    .chart-container {
+        page-break-inside: avoid;
+    }
+    
+    .card {
+        border: 1px solid #ddd;
+        box-shadow: none;
+        page-break-inside: avoid;
+    }
+    
+    .badge {
+        border: 1px solid #000;
+        color: #000 !important;
+    }
+    
+    .badge.bg-danger {
+        background-color: #f8d7da !important;
+    }
+    
+    .badge.bg-warning {
+        background-color: #fff3cd !important;
+    }
+    
+    .badge.bg-info {
+        background-color: #d1ecf1 !important;
+    }
+    
+    .badge.bg-success {
+        background-color: #d4edda !important;
+    }
+    
+    .badge.bg-primary {
+        background-color: #cfe2ff !important;
+    }
+    
+    .table {
+        border-color: #ddd !important;
+    }
+    
+    .text-danger {
+        color: #dc3545 !important;
+    }
+    
+    .text-warning {
+        color: #ffc107 !important;
+    }
+    
+    .text-info {
+        color: #17a2b8 !important;
+    }
+    
+    .text-success {
+        color: #28a745 !important;
+    }
+    
+    .text-primary {
+        color: #007bff !important;
+    }
+}
+
+/* Tooltip styling */
+.tooltip-inner {
+    max-width: 200px;
+    padding: 8px 12px;
+    color: #fff;
+    text-align: center;
+    background-color: #343a40;
+    border-radius: 4px;
+}
+
+/* アイコンボタンスタイル - テキストを非表示にする */
+.btn-icon-only {
+    font-size: 0;
+    line-height: 0;
+}
+
+.btn-icon-only i, 
+.btn-icon-only .fa, 
+.btn-icon-only .fas, 
+.btn-icon-only .fa-solid,
+.btn-icon-only .fa-regular,
+.btn-icon-only .fa-light,
+.btn-icon-only .fa-brands {
+    font-size: 14px;
+    line-height: 1.5;
+    display: inline-block;
+}
+
+.edit-mapping-btn,
+.delete-mapping-btn,
+.edit-standard-account-btn {
+    font-size: 0 !important;
+}
+
+.edit-mapping-btn i,
+.delete-mapping-btn i,
+.edit-standard-account-btn i {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+}
+
+/* Add some spacing to the footer */
+.footer {
+    margin-top: 2rem;
+    padding: 1.5rem 0;
+}
+
+/* Improve form element spacing */
+.form-label {
+    margin-bottom: 0.3rem;
+    font-weight: 500;
+}
+
+.form-text {
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+}
+
+/* Improve accordion styling */
+.accordion-button:not(.collapsed) {
+    color: #fff;
+    background-color: rgba(13, 110, 253, 0.15);
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+    border-color: rgba(13, 110, 253, 0.15);
+}
+
+/* Improve alert styling */
+.alert {
+    border-radius: 0.5rem;
+}
+
+/* ファイルタイプタブの統一サイズ */
+.nav-tabs .nav-link {
+    min-width: 150px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* マッピングボタンの超小型化 */
+.mapping-page .btn-group-sm > .btn {
+    padding: 0.15rem 0.3rem !important;
+    font-size: 0.6rem !important;
+    border-radius: 0.15rem !important;
+    line-height: 1 !important;
+}
+
+.mapping-page .map-account-btn,
+.mapping-page .ai-recommend-btn,
+.mapping-page .edit-mapping-btn,
+.mapping-page .delete-mapping-btn {
+    padding: 1px !important;
+    margin: 0 !important;
+    height: 20px !important;
+    width: 20px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.mapping-page .map-account-btn i,
+.mapping-page .ai-recommend-btn i,
+.mapping-page .edit-mapping-btn i,
+.mapping-page .delete-mapping-btn i {
+    font-size: 0.6rem !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.mapping-page .btn-group {
+    display: inline-flex !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* マッピングテーブルのコンパクト化 */
+.mapping-page .table-sm td, 
+.mapping-page .table-sm th {
+    padding: 0.15rem 0.25rem !important;
+    font-size: 0.75rem !important;
+}
+
+.mapping-page .badge {
+    font-size: 0.65rem !important;
+    padding: 0.15rem 0.25rem !important;
+}

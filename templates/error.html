@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0"><i class="fa-solid fa-triangle-exclamation"></i> {{ error_title }}</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <p class="mb-0">{{ error_message }}</p>
+                    </div>
+                    
+                    {% if error_detail %}
+                    <div class="mt-3">
+                        <p><strong>詳細情報：</strong></p>
+                        <pre class="bg-light p-3 rounded">{{ error_detail }}</pre>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <a href="{{ url_for('index') }}" class="btn btn-primary">
+                            <i class="fa-solid fa-home"></i> ホームに戻る
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

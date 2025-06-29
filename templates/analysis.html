@@ -1,0 +1,804 @@
+{% extends "layout.html" %}
+
+{% block head_scripts %}
+<!-- インラインでJavaScriptコードを追加 -->
+<script>
+/**
+ * アラートメッセージを表示する
+ * @param {string} message - 表示するメッセージ
+ * @param {string} className - アラートのクラス（alert-success, alert-danger, alert-warning）
+ */
+function showAlert(message, className) {
+    // 既存のアラートを削除
+    const existingAlerts = document.querySelectorAll('.custom-alert');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    // アラート要素を作成
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert ${className} alert-dismissible fade show custom-alert`;
+    alertDiv.setAttribute('role', 'alert');
+    alertDiv.style.position = 'fixed';
+    alertDiv.style.top = '20px';
+    alertDiv.style.right = '20px';
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.maxWidth = '400px';
+    
+    // メッセージを設定
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // bodyに追加
+    document.body.appendChild(alertDiv);
+    
+    // 5秒後に自動的に閉じる
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// 財務指標再計算処理はscriptsブロックに統合しました
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="display-5 mb-3"><i class="fa-solid fa-chart-column"></i> 財務リスク分析</h1>
+        <p class="lead">財務指標の計算と分析によりリスクを評価します。</p>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">JA・年度選択</h5>
+                <form action="{{ url_for('select_ja') }}" method="post" class="mt-2">
+                    <div class="mb-3">
+                        <label for="ja_code" class="form-label">JA</label>
+                        <select name="ja_code" id="ja_code" class="form-select">
+                            {% for ja in jas %}
+                            <option value="{{ ja.ja_code }}" {% if ja.ja_code == selected_ja_code %}selected{% endif %}>
+                                {{ ja.name }} ({{ ja.prefecture }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="year" class="form-label">年度</label>
+                        <select name="year" id="year" class="form-select">
+                            {# コントローラーから渡された年度一覧を使用 #}
+                            {% for year in all_years %}
+                                <option value="{{ year }}" {% if year|string == selected_year|string %}selected{% endif %}>
+                                    {{ year }}
+                                </option>
+                            {% endfor %}
+                            
+                            {# 年度が見つからない場合のフォールバック #}
+                            {% if not all_years %}
+                                <option value="2025" {% if selected_year == 2025 %}selected{% endif %}>2025</option>
+                                <option value="2024" {% if selected_year == 2024 %}selected{% endif %}>2024</option>
+                                <option value="2023" {% if selected_year == 2023 %}selected{% endif %}>2023</option>
+                            {% endif %}
+                            
+                            {# デバッグ表示 #}
+                            <!-- 選択中: {{ selected_year }}, 年度一覧: {{ all_years|join(',') if all_years else 'なし' }} -->
+                        </select>
+                    </div>
+                    <input type="hidden" name="redirect_url" value="{{ url_for('analysis') }}">
+                    <div class="row">
+                        <div class="col-6">
+                            <button type="submit" class="btn btn-secondary w-100">選択</button>
+                        </div>
+                        <div class="col-6">
+                            <button type="button" id="recalculateIndicators" class="btn btn-warning w-100" data-ja="{{ selected_ja_code }}" data-year="{{ selected_year }}">
+                                <i class="fa-solid fa-calculator"></i> 指標再計算
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Availability Status -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">データ状況</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-9">
+                        <div class="d-flex justify-content-between">
+                            <div class="me-3">
+                                <div class="mb-2">
+                                    貸借対照表 (BS): 
+                                    {% if data_availability.bs %}
+                                    <span class="badge bg-success">取込済</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">未取込</span>
+                                    {% endif %}
+                                </div>
+                                <div class="mb-2">
+                                    損益計算書 (PL): 
+                                    {% if data_availability.pl %}
+                                    <span class="badge bg-success">取込済</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">未取込</span>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    キャッシュフロー計算書 (CF): 
+                                    {% if data_availability.cf %}
+                                    <span class="badge bg-success">取込済</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">未取込</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <p class="mb-1">選択中のJA: <strong>{{ selected_ja_code }}</strong></p>
+                                <p class="mb-1">年度: <strong>{{ selected_year }}</strong></p>
+                                {% if previous_year_indicators %}
+                                <p class="mb-1 text-muted">※ 前年度 {{ previous_year }} との比較データあり</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <form action="{{ url_for('calculate_indicators') }}" method="post">
+                            <input type="hidden" name="ja_code" value="{{ selected_ja_code }}">
+                            <input type="hidden" name="year" value="{{ selected_year }}">
+                            <button type="submit" class="btn btn-primary w-100" 
+                                    {% if not (data_availability.bs and data_availability.pl and data_availability.cf) %}disabled{% endif %}>
+                                <i class="fa-solid fa-calculator"></i> 指標計算・分析実行
+                            </button>
+                        </form>
+                        {% if not (data_availability.bs and data_availability.pl and data_availability.cf) %}
+                        <small class="text-danger">* すべての財務データが必要です</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Type Tabs -->
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link {% if analysis_type == 'liquidity' %}active{% endif %}" href="{{ url_for('analysis', type='liquidity') }}">
+            流動性
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if analysis_type == 'profitability' %}active{% endif %}" href="{{ url_for('analysis', type='profitability') }}">
+            収益性
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if analysis_type == 'safety' %}active{% endif %}" href="{{ url_for('analysis', type='safety') }}">
+            安全性
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if analysis_type == 'efficiency' %}active{% endif %}" href="{{ url_for('analysis', type='efficiency') }}">
+            効率性
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if analysis_type == 'cash_flow' %}active{% endif %}" href="{{ url_for('analysis', type='cash_flow') }}">
+            キャッシュフロー
+        </a>
+    </li>
+</ul>
+
+<!-- Data Missing Warning Alert -->
+{% if not (data_availability.bs and data_availability.pl and data_availability.cf) %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-warning" role="alert">
+            <h4 class="alert-heading"><i class="fa-solid fa-triangle-exclamation"></i> 財務データが不足しています</h4>
+            <p>選択されたJA「{{ selected_ja_code }}」の{{ selected_year }}年度のデータが完全ではありません。</p>
+            <hr>
+            <p class="mb-0">
+                {% if not data_availability.bs %}<span class="badge bg-danger">貸借対照表(BS)</span>{% endif %}
+                {% if not data_availability.pl %}<span class="badge bg-danger">損益計算書(PL)</span>{% endif %}
+                {% if not data_availability.cf %}<span class="badge bg-danger">キャッシュフロー計算書(CF)</span>{% endif %}
+                のデータが不足しています。データをインポートしてから分析を行ってください。
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Analysis Content -->
+<div class="row">
+    <!-- Chart Card -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    {% if analysis_type == 'liquidity' %}流動性指標
+                    {% elif analysis_type == 'profitability' %}収益性指標
+                    {% elif analysis_type == 'safety' %}安全性指標
+                    {% elif analysis_type == 'efficiency' %}効率性指標
+                    {% elif analysis_type == 'cash_flow' %}キャッシュフロー指標
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if indicators %}
+                <div class="chart-container indicator-chart-container {% if analysis_type == 'safety' %}safety-indicator-chart{% endif %}" style="height: 400px;">
+                    <canvas id="indicatorsChart"></canvas>
+                </div>
+                {% else %}
+                <div class="text-center p-5">
+                    {% if not (data_availability.bs and data_availability.pl and data_availability.cf) %}
+                    <div class="mb-4">
+                        <i class="fa-solid fa-database text-muted" style="font-size: 48px;"></i>
+                        <h5 class="mt-3 mb-3">必要なデータがありません</h5>
+                        <p class="text-muted">すべての財務データ（BS、PL、CF）が必要です。<br>データインポート画面からCSVファイルをアップロードしてください。</p>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">分析データがありません。「指標計算・分析実行」ボタンをクリックして分析を実行してください。</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Indicators Table Card -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">分析結果</h5>
+            </div>
+            <div class="card-body">
+                {% if indicators %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>指標名</th>
+                                <th>値</th>
+                                {% if previous_year_indicators %}
+                                <th>前年度 ({{ previous_year }})</th>
+                                <th>前年比</th>
+                                {% endif %}
+                                <th>基準値</th>
+                                <th>リスク</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for name, data in indicators.items() %}
+                            <tr>
+                                <td>
+                                    {% if name == 'current_ratio' %}流動比率
+                                    {% elif name == 'quick_ratio' %}当座比率
+                                    {% elif name == 'cash_ratio' %}現金比率
+                                    {% elif name == 'working_capital' %}運転資本
+                                    {% elif name == 'roa' %}総資産利益率
+                                    {% elif name == 'roe' %}自己資本利益率
+                                    {% elif name == 'profit_margin' %}利益率
+                                    {% elif name == 'operating_margin' %}営業利益率
+                                    {% elif name == 'debt_ratio' %}負債比率
+                                    {% elif name == 'equity_ratio' %}自己資本比率
+                                    {% elif name == 'debt_to_equity' %}負債資本比率
+                                    {% elif name == 'interest_coverage' %}インタレストカバレッジレシオ
+                                    {% elif name == 'asset_turnover' %}総資産回転率
+                                    {% elif name == 'receivables_turnover' %}売上債権回転率
+                                    {% elif name == 'inventory_turnover' %}棚卸資産回転率
+                                    {% elif name == 'days_sales_outstanding' %}売上債権回収期間
+                                    {% elif name == 'ocf_to_debt' %}営業CF対負債比率
+                                    {% elif name == 'cf_to_revenue' %}CF対売上比率
+                                    {% elif name == 'cf_to_net_income' %}CF対純利益比率
+                                    {% elif name == 'free_cash_flow' %}フリーキャッシュフロー
+                                    {% else %}{{ name }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">{{ "%.2f"|format(data.value) }}</td>
+                                
+                                {% if previous_year_indicators %}
+                                    {% set prev_value = previous_year_indicators.get(name, {}).get('value', None) %}
+                                    <td class="text-end">
+                                        {% if prev_value is not none %}
+                                            {{ "%.2f"|format(prev_value) }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if prev_value is not none and prev_value != 0 %}
+                                            {% set change_percent = ((data.value - prev_value) / prev_value) * 100 %}
+                                            {% if change_percent > 0 %}
+                                                <span class="text-success">+{{ "%.1f"|format(change_percent) }}%</span>
+                                            {% elif change_percent < 0 %}
+                                                <span class="text-danger">{{ "%.1f"|format(change_percent) }}%</span>
+                                            {% else %}
+                                                <span class="text-muted">0.0%</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                                
+                                <td class="text-end">{{ "%.2f"|format(data.benchmark) if data.benchmark else 'N/A' }}</td>
+                                <td>
+                                    {% if data.risk_level == "高" or data.risk_level == "高い" or data.risk_level == "極めて高い" %}
+                                    <span class="badge bg-danger">{{ data.risk_level }}</span>
+                                    {% elif data.risk_level == "中高" %}
+                                    <span class="badge bg-warning">{{ data.risk_level }}</span>
+                                    {% elif data.risk_level == "中" or data.risk_level == "中程度" %}
+                                    <span class="badge bg-info">{{ data.risk_level }}</span>
+                                    {% elif data.risk_level == "低中" %}
+                                    <span class="badge bg-success">{{ data.risk_level }}</span>
+                                    {% elif data.risk_level == "低" or data.risk_level == "低い" or data.risk_level == "極めて低い" %}
+                                    <span class="badge bg-primary">{{ data.risk_level }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ data.risk_level }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-5">
+                    {% if not (data_availability.bs and data_availability.pl and data_availability.cf) %}
+                    <div class="mb-4">
+                        <i class="fa-solid fa-chart-line text-muted" style="font-size: 48px;"></i>
+                        <h5 class="mt-3 mb-3">分析を実行できません</h5>
+                        <p class="text-muted">すべての財務データをインポートしてから分析を実行してください。</p>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">分析データがありません。「指標計算・分析実行」ボタンをクリックして分析を実行してください。</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Details Card -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">詳細分析</h5>
+            </div>
+            <div class="card-body">
+                {% if indicators %}
+                <div class="accordion" id="analysisAccordion">
+                    {% for name, data in indicators.items() %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="heading{{ loop.index }}">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapse{{ loop.index }}" aria-expanded="false" aria-controls="collapse{{ loop.index }}">
+                                {% if name == 'current_ratio' %}流動比率
+                                {% elif name == 'quick_ratio' %}当座比率
+                                {% elif name == 'cash_ratio' %}現金比率
+                                {% elif name == 'working_capital' %}運転資本
+                                {% elif name == 'roa' %}総資産利益率
+                                {% elif name == 'roe' %}自己資本利益率
+                                {% elif name == 'profit_margin' %}利益率
+                                {% elif name == 'operating_margin' %}営業利益率
+                                {% elif name == 'debt_ratio' %}負債比率
+                                {% elif name == 'equity_ratio' %}自己資本比率
+                                {% elif name == 'debt_to_equity' %}負債資本比率
+                                {% elif name == 'interest_coverage' %}インタレストカバレッジレシオ
+                                {% elif name == 'asset_turnover' %}総資産回転率
+                                {% elif name == 'receivables_turnover' %}売上債権回転率
+                                {% elif name == 'inventory_turnover' %}棚卸資産回転率
+                                {% elif name == 'days_sales_outstanding' %}売上債権回収期間
+                                {% elif name == 'ocf_to_debt' %}営業CF対負債比率
+                                {% elif name == 'cf_to_revenue' %}CF対売上比率
+                                {% elif name == 'cf_to_net_income' %}CF対純利益比率
+                                {% elif name == 'free_cash_flow' %}フリーキャッシュフロー
+                                {% else %}{{ name }}
+                                {% endif %}
+                                の分析 
+                                {% if data.risk_level == "高" or data.risk_level == "高い" or data.risk_level == "極めて高い" %}
+                                <span class="badge bg-danger ms-2">{{ data.risk_level }}</span>
+                                {% elif data.risk_level == "中高" %}
+                                <span class="badge bg-warning ms-2">{{ data.risk_level }}</span>
+                                {% elif data.risk_level == "中" or data.risk_level == "中程度" %}
+                                <span class="badge bg-info ms-2">{{ data.risk_level }}</span>
+                                {% elif data.risk_level == "低中" %}
+                                <span class="badge bg-success ms-2">{{ data.risk_level }}</span>
+                                {% elif data.risk_level == "低" or data.risk_level == "低い" or data.risk_level == "極めて低い" %}
+                                <span class="badge bg-primary ms-2">{{ data.risk_level }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary ms-2">{{ data.risk_level }}</span>
+                                {% endif %}
+                            </button>
+                        </h2>
+                        <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" aria-labelledby="heading{{ loop.index }}" data-bs-parent="#analysisAccordion">
+                            <div class="accordion-body">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card mb-3">
+                                            <div class="card-header bg-primary text-white">
+                                                <h6 class="mb-0">指標の詳細情報</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <p><strong>現在の値:</strong> {{ "%.2f"|format(data.value) }}</p>
+                                                <p><strong>基準値:</strong> {{ "%.2f"|format(data.benchmark) if data.benchmark else 'N/A' }}</p>
+                                                <p><strong>リスクスコア:</strong> {{ data.risk_score }}/5</p>
+                                                <p><strong>分析:</strong> {{ data.analysis_result }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card mb-3">
+                                            <div class="card-header bg-info text-white">
+                                                <h6 class="mb-0">計算式と計算過程</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="alert alert-info">
+                                                    <p><strong>計算式:</strong> {{ data.formula if data.formula else 'データなし' }}</p>
+                                                    <p><strong>計算過程:</strong> {{ data.calculation if data.calculation else 'データなし' }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header bg-success text-white">
+                                                <h6 class="mb-0">使用した勘定科目</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                {% if data.accounts_used %}
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm table-striped">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>科目名</th>
+                                                                <th>科目コード</th>
+                                                                <th class="text-end">金額</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for key, account in data.accounts_used|dictsort(false, 'key') %}
+                                                            <tr>
+                                                                {% if account is mapping and 'name' in account %}
+                                                                    <td>{{ account.name }}</td>
+                                                                    {% if 'code' in account %}
+                                                                        <td>{{ account.code }}</td>
+                                                                    {% else %}
+                                                                        <td>{{ key }}</td>
+                                                                    {% endif %}
+                                                                {% else %}
+                                                                    <td>{{ key }}</td>
+                                                                    <td>-</td>
+                                                                {% endif %}
+                                                                <td class="text-end">
+                                                                    {% if account is mapping and 'value' in account %}
+                                                                        {{ "{:,.0f}".format(account.value) }}
+                                                                    {% else %}
+                                                                        {{ "{:,.0f}".format(account) if account is number else account }}
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
+                                                            {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                {% else %}
+                                                <p>使用した勘定科目のデータはありません。</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <p class="text-muted">分析データがありません。「指標計算・分析実行」ボタンをクリックして分析を実行してください。</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overall Risk Assessment Card -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">総合リスク評価</h5>
+            </div>
+            <div class="card-body">
+                {% if risk_assessment and risk_assessment.status == 'success' %}
+                <div class="row">
+                    <div class="col-md-4 text-center mb-3">
+                        <div class="h4">総合リスクレベル</div>
+                        <div class="display-4 mb-2">
+                            {% if risk_assessment.overall_risk_level == "極めて高い" %}
+                            <span class="text-danger">{{ risk_assessment.overall_risk_level }}</span>
+                            {% elif risk_assessment.overall_risk_level == "高い" %}
+                            <span class="text-warning">{{ risk_assessment.overall_risk_level }}</span>
+                            {% elif risk_assessment.overall_risk_level == "中程度" %}
+                            <span class="text-info">{{ risk_assessment.overall_risk_level }}</span>
+                            {% elif risk_assessment.overall_risk_level == "低い" %}
+                            <span class="text-success">{{ risk_assessment.overall_risk_level }}</span>
+                            {% elif risk_assessment.overall_risk_level == "極めて低い" %}
+                            <span class="text-primary">{{ risk_assessment.overall_risk_level }}</span>
+                            {% else %}
+                            <span>{{ risk_assessment.overall_risk_level }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-muted">
+                            スコア：{{ "%.2f"|format(risk_assessment.overall_score) }}/5.0
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-8">
+                        <h5 class="mb-3">カテゴリ別リスクスコア</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>カテゴリ</th>
+                                        <th>スコア</th>
+                                        <th>リスクレベル</th>
+                                        <th style="width: 40%;">可視化</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for category, score in risk_assessment.category_scores.items() %}
+                                    <tr>
+                                        <td>
+                                            {% if category == 'liquidity' %}流動性
+                                            {% elif category == 'profitability' %}収益性
+                                            {% elif category == 'safety' %}安全性
+                                            {% elif category == 'efficiency' %}効率性
+                                            {% elif category == 'cash_flow' %}キャッシュフロー
+                                            {% else %}{{ category }}
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ "%.2f"|format(score) }}</td>
+                                        <td>
+                                            {% if score >= 4.5 %}
+                                            <span class="badge bg-danger">極めて高い</span>
+                                            {% elif score >= 3.5 %}
+                                            <span class="badge bg-warning">高い</span>
+                                            {% elif score >= 2.5 %}
+                                            <span class="badge bg-info">中程度</span>
+                                            {% elif score >= 1.5 %}
+                                            <span class="badge bg-success">低い</span>
+                                            {% else %}
+                                            <span class="badge bg-primary">極めて低い</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                {% if score >= 4.5 %}
+                                                <div class="progress-bar bg-danger" role="progressbar" style="width: {{ score / 5 * 100 }}%;" 
+                                                     aria-valuenow="{{ score }}" aria-valuemin="0" aria-valuemax="5">{{ "%.1f"|format(score) }}</div>
+                                                {% elif score >= 3.5 %}
+                                                <div class="progress-bar bg-warning" role="progressbar" style="width: {{ score / 5 * 100 }}%;" 
+                                                     aria-valuenow="{{ score }}" aria-valuemin="0" aria-valuemax="5">{{ "%.1f"|format(score) }}</div>
+                                                {% elif score >= 2.5 %}
+                                                <div class="progress-bar bg-info" role="progressbar" style="width: {{ score / 5 * 100 }}%;" 
+                                                     aria-valuenow="{{ score }}" aria-valuemin="0" aria-valuemax="5">{{ "%.1f"|format(score) }}</div>
+                                                {% elif score >= 1.5 %}
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ score / 5 * 100 }}%;" 
+                                                     aria-valuenow="{{ score }}" aria-valuemin="0" aria-valuemax="5">{{ "%.1f"|format(score) }}</div>
+                                                {% else %}
+                                                <div class="progress-bar bg-primary" role="progressbar" style="width: {{ score / 5 * 100 }}%;" 
+                                                     aria-valuenow="{{ score }}" aria-valuemin="0" aria-valuemax="5">{{ "%.1f"|format(score) }}</div>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('reports', type='improvement') }}" class="btn btn-primary">
+                        <i class="fa-solid fa-lightbulb"></i> 改善提案を表示
+                    </a>
+                    <a href="{{ url_for('reports', type='summary') }}" class="btn btn-secondary ms-2">
+                        <i class="fa-solid fa-file-lines"></i> レポート表示
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center p-4">
+                    <p class="text-muted">総合リスク評価データがありません。「指標計算・分析実行」ボタンをクリックして分析を実行してください。</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// チャートと指標表示のためのスクリプト
+document.addEventListener('DOMContentLoaded', function() {
+    {% if indicators %}
+    // 明示的にセッションとURL両方から現在のJAと年度を取得
+    const currentJaCode = '{{ selected_ja_code }}';
+    const currentYear = '{{ selected_year }}';
+    const analysisType = '{{ analysis_type }}';
+    console.log(`現在の選択: JA=${currentJaCode}, 年度=${currentYear}, 分析タイプ=${analysisType}`);
+    
+    // 必ず現在のJAと年度を使用してAPIリクエスト
+    fetch(`/api/indicator_data?ja_code=${currentJaCode}&year=${currentYear}&type=${analysisType}`)
+        .then(response => response.json())
+        .then(response => {
+            if (response.status === 'success') {
+                // Draw bar chart
+                const ctx = document.getElementById('indicatorsChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: response.data.labels,
+                        datasets: [
+                            {
+                                label: '指標値',
+                                data: response.data.values,
+                                backgroundColor: response.data.colors.map(color => {
+                                    // 安全性指標は特別に明るい色にする
+                                    if (window.location.href.includes('type=safety')) {
+                                        // rgbaからrgbの部分だけ取り出して、明るい色を設定
+                                        if (color.startsWith('rgba(')) {
+                                            const rgbPart = color.split(',').slice(0, 3).join(',');
+                                            return rgbPart + ', 0.95)';
+                                        }
+                                        return color.replace('0.7', '0.95');
+                                    }
+                                    return color.replace('0.7', '0.9');
+                                }),
+                                borderColor: response.data.colors.map(color => color.replace('0.7', '1')),
+                                borderWidth: 1,
+                                maxBarThickness: 50
+                            },
+                            {
+                                label: '基準値',
+                                data: response.data.benchmarks,
+                                type: 'line',
+                                fill: false,
+                                borderColor: window.location.href.includes('type=safety') ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.7)',
+                                borderDash: [5, 5],
+                                pointBackgroundColor: window.location.href.includes('type=safety') ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.7)',
+                                pointBorderColor: window.location.href.includes('type=safety') ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.7)',
+                                borderWidth: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: window.location.href.includes('type=safety') ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)'
+                                },
+                                ticks: {
+                                    color: window.location.href.includes('type=safety') ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.7)',
+                                    font: {
+                                        weight: window.location.href.includes('type=safety') ? 'bold' : 'normal'
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    color: window.location.href.includes('type=safety') ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)'
+                                },
+                                ticks: {
+                                    color: window.location.href.includes('type=safety') ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.7)',
+                                    font: {
+                                        weight: window.location.href.includes('type=safety') ? 'bold' : 'normal'
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: window.location.href.includes('type=safety') ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.7)',
+                                    font: {
+                                        size: window.location.href.includes('type=safety') ? 14 : 12,
+                                        weight: window.location.href.includes('type=safety') ? 'bold' : 'normal'
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleFont: {
+                                    weight: 'bold'
+                                },
+                                bodyFont: {
+                                    size: 14
+                                },
+                                padding: 10,
+                                cornerRadius: 6
+                            }
+                        }
+                    }
+                });
+            }
+        })
+        .catch(error => console.error('Error loading indicator data:', error));
+    {% endif %}
+
+    // 指標再計算ボタンの処理
+    document.getElementById('recalculateIndicators').addEventListener('click', function() {
+        const jaCode = this.getAttribute('data-ja');
+        const year = this.getAttribute('data-year');
+        
+        if (!jaCode) {
+            alert('JAコードが設定されていません。JAを選択してください。');
+            return;
+        }
+        
+        if (!year) {
+            alert('年度が設定されていません。年度を選択してください。');
+            return;
+        }
+        
+        // 確認ダイアログ
+        if (!confirm(`JA ${jaCode}の${year}年度の財務指標を再計算します。\n\n※この操作は既存の指標データを削除して新しく計算し直します。よろしいですか？`)) {
+            return;
+        }
+        
+        // ボタンを無効化して処理中表示
+        this.disabled = true;
+        const originalText = this.innerHTML;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 計算中...';
+        
+        // フォームをプログラムで作成して送信
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/calculate_indicators';  // 既存の機能するエンドポイントを使用
+        form.style.display = 'none';
+        
+        // 入力フィールドを作成
+        const jaInput = document.createElement('input');
+        jaInput.type = 'hidden';
+        jaInput.name = 'ja_code';
+        jaInput.value = jaCode;
+        
+        const yearInput = document.createElement('input');
+        yearInput.type = 'hidden';
+        yearInput.name = 'year';
+        yearInput.value = year;
+        
+        // フォームに追加
+        form.appendChild(jaInput);
+        form.appendChild(yearInput);
+        
+        // bodyに追加して送信
+        document.body.appendChild(form);
+        
+        console.log('指標再計算フォーム送信:', jaCode, year);
+        form.submit();
+    });
+});
+</script>
+{% endblock %}

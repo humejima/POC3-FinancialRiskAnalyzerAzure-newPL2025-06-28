@@ -1,0 +1,272 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<title>JA登録管理 - JA財務リスク分析システム</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}?nocache={{ nocache }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="display-5 mb-3"><i class="fa-solid fa-building-columns"></i> JA登録管理</h1>
+            <p class="lead">登録済みJAの管理、編集、削除を行います。</p>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">登録済みJA一覧</h5>
+                    <a href="{{ url_for('new_ja_registration') }}" class="btn btn-light btn-sm">
+                        <i class="fa-solid fa-plus"></i> 新規JA登録
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if jas %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>JAコード</th>
+                                    <th>JA名</th>
+                                    <th>都道府県</th>
+                                    <th>規模</th>
+                                    <th>取り込み済み年度</th>
+                                    <th>マッピング状況</th>
+                                    <th style="text-align: center;">リスク評点</th>
+                                    <th class="text-center">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ja in jas %}
+                                    {% if ja_data_years.get(ja.ja_code) %}
+                                        {% for year in ja_data_years[ja.ja_code] %}
+                                        <tr>
+                                            <td style="color: white;"><strong>{{ ja.ja_code }}</strong></td>
+                                            <td style="color: white;">{{ ja.name }}</td>
+                                            <td style="color: white;">{{ ja.prefecture }}</td>
+                                            <td style="color: white;">{{ ja.scale or '-' }}</td>
+                                            <td>
+                                                <span class="badge bg-info">{{ year }}</span>
+                                            </td>
+                                            <td style="vertical-align: middle;">
+                                                {% if mapping_status.get(ja.ja_code) %}
+                                                    {% for file_type, status in mapping_status[ja.ja_code].items() %}
+                                                        <div style="font-size: 16px; margin-bottom: 2px; color: white;">
+                                                            {{ file_type.upper() }}: 
+                                                            <span class="text-success">{{ status.mapped_count }}</span>/<span style="color: white;">{{ status.total_count }}</span>
+                                                        </div>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <span class="text-white" style="font-size: 16px;">データなし</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center" style="vertical-align: middle;">
+                                                <div class="d-flex flex-column gap-1" style="min-width: 120px;">
+                                                    {% set scores = risk_scores.get(ja.ja_code, {}) %}
+                                                    <div style="font-size: 14px;"><span class="text-white">収益性:</span> 
+                                                        {% if scores.get('profitability') %}
+                                                            <span class="badge 
+                                                                {% if scores.profitability <= 2 %}bg-success
+                                                                {% elif scores.profitability <= 3 %}bg-warning
+                                                                {% else %}bg-danger{% endif %}" style="font-size: 13px;">{{ scores.profitability }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-secondary" style="font-size: 13px;">-</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div style="font-size: 14px;"><span class="text-white">流動性:</span> 
+                                                        {% if scores.get('liquidity') %}
+                                                            <span class="badge 
+                                                                {% if scores.liquidity <= 2 %}bg-success
+                                                                {% elif scores.liquidity <= 3 %}bg-warning
+                                                                {% else %}bg-danger{% endif %}" style="font-size: 13px;">{{ scores.liquidity }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-secondary" style="font-size: 13px;">-</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div style="font-size: 14px;"><span class="text-white">効率性:</span> 
+                                                        {% if scores.get('efficiency') %}
+                                                            <span class="badge 
+                                                                {% if scores.efficiency <= 2 %}bg-success
+                                                                {% elif scores.efficiency <= 3 %}bg-warning
+                                                                {% else %}bg-danger{% endif %}" style="font-size: 13px;">{{ scores.efficiency }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-secondary" style="font-size: 13px;">-</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div style="font-size: 14px;"><span class="text-white">安全性:</span> 
+                                                        {% if scores.get('safety') %}
+                                                            <span class="badge 
+                                                                {% if scores.safety <= 2 %}bg-success
+                                                                {% elif scores.safety <= 3 %}bg-warning
+                                                                {% else %}bg-danger{% endif %}" style="font-size: 13px;">{{ scores.safety }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-secondary" style="font-size: 13px;">-</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div style="font-size: 14px;"><span class="text-white">CF:</span> 
+                                                        {% if scores.get('cash_flow') %}
+                                                            <span class="badge 
+                                                                {% if scores.cash_flow <= 2 %}bg-success
+                                                                {% elif scores.cash_flow <= 3 %}bg-warning
+                                                                {% else %}bg-danger{% endif %}" style="font-size: 13px;">{{ scores.cash_flow }}</span>
+                                                        {% else %}
+                                                            <span class="badge bg-secondary" style="font-size: 13px;">-</span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-center" style="vertical-align: middle;">
+                                                <div class="row g-1" style="width: 200px;">
+                                                    <div class="col-6">
+                                                        <button class="btn btn-primary btn-sm w-100" 
+                                                                data-bs-toggle="modal" 
+                                                                data-bs-target="#editModal{{ loop.index0 }}" 
+                                                                style="font-size: 14px; padding: 4px 6px; white-space: nowrap;">
+                                                            <i class="fa-solid fa-edit" style="margin-right: 3px; font-size: 13px;"></i>編集
+                                                        </button>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <button class="btn btn-danger btn-sm w-100" 
+                                                                onclick="deleteJA('{{ ja.ja_code }}')" 
+                                                                style="font-size: 14px; padding: 4px 6px; white-space: nowrap;">
+                                                            <i class="fa-solid fa-trash" style="margin-right: 3px; font-size: 13px;"></i>削除
+                                                        </button>
+                                                    </div>
+                                                    <div class="col-6 pt-1">
+                                                        <button class="btn btn-outline-info btn-sm w-100" 
+                                                                onclick="navigateWithJAData('{{ url_for('mapping') }}', '{{ ja.ja_code }}', {{ year }})"
+                                                                style="font-size: 14px; padding: 4px 6px; white-space: nowrap;">
+                                                            <i class="fa-solid fa-link" style="margin-right: 3px; font-size: 13px;"></i>マッピング
+                                                        </button>
+                                                    </div>
+                                                    <div class="col-6 ps-1 pt-1">
+                                                        <button class="btn btn-outline-success btn-sm w-100" 
+                                                                onclick="openAccountBalances('{{ ja.ja_code }}', {{ year }})"
+                                                                style="font-size: 14px; padding: 4px 6px; white-space: nowrap;">
+                                                            <i class="fa-solid fa-money-bill-trend-up" style="margin-right: 3px; font-size: 13px;"></i>残高一覧
+                                                        </button>
+                                                    </div>
+                                                    <div class="col-6 pe-1 pt-1">
+                                                        <button class="btn btn-outline-warning btn-sm w-100" 
+                                                                onclick="navigateWithJAData('{{ url_for('analysis') }}', '{{ ja.ja_code }}', {{ year }})"
+                                                                style="font-size: 14px; padding: 4px 6px; white-space: nowrap;">
+                                                            <i class="fa-solid fa-chart-column" style="margin-right: 3px; font-size: 13px;"></i>リスク分析
+                                                        </button>
+                                                    </div>
+                                                    <div class="col-6 ps-1 pt-1">
+                                                        <button class="btn btn-outline-secondary btn-sm w-100" 
+                                                                onclick="navigateWithJAData('{{ url_for('index') }}', '{{ ja.ja_code }}', {{ year }})"
+                                                                style="font-size: 14px; padding: 4px 6px; white-space: nowrap;">
+                                                            <i class="fa-solid fa-gauge-high" style="margin-right: 3px; font-size: 13px;"></i>ダッシュボード
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td style="color: white;"><strong>{{ ja.ja_code }}</strong></td>
+                                            <td style="color: white;">{{ ja.name }}</td>
+                                            <td style="color: white;">{{ ja.prefecture }}</td>
+                                            <td style="color: white;">{{ ja.scale or '-' }}</td>
+                                            <td>
+                                                <span class="text-white">未取込</span>
+                                            </td>
+                                            <td colspan="3" class="text-center text-white">データなし</td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fa-solid fa-building-columns fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">登録済みJAがありません</h5>
+                        <p class="text-muted">まずは新規JAを登録してください。</p>
+                        <a href="{{ url_for('new_ja_registration') }}" class="btn btn-primary">
+                            <i class="fa-solid fa-plus"></i> 新規JA登録
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ナビゲーションボタン -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary" style="width: 120px;">
+                    <i class="fa-solid fa-arrow-left"></i> ダッシュボード
+                </a>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('new_ja_registration') }}" class="btn btn-primary" style="width: 120px;">
+                        <i class="fa-solid fa-plus"></i> 新規JA登録
+                    </a>
+                    <a href="{{ url_for('data_import') }}" class="btn btn-outline-primary" style="width: 120px;">
+                        <i class="fa-solid fa-upload"></i> データ取り込み
+                    </a>
+                    <a href="{{ url_for('mapping') }}" class="btn btn-outline-primary" style="width: 120px;">
+                        <i class="fa-solid fa-link"></i> マッピング
+                    </a>
+                    <a href="{{ url_for('account_balances') }}" class="btn btn-outline-primary" style="width: 120px;" target="_blank">
+                        <i class="fa-solid fa-money-bill-trend-up"></i> 残高一覧
+                    </a>
+                    <a href="{{ url_for('analysis') }}" class="btn btn-outline-primary" style="width: 120px;">
+                        <i class="fa-solid fa-chart-column"></i> リスク分析
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('JA登録管理画面が読み込まれました:', new Date().toISOString());
+});
+
+// JA選択とセッション更新を行う関数
+function setJASelection(jaCode, year) {
+    fetch('/set_ja_selection', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            ja_code: jaCode,
+            year: year
+        })
+    });
+}
+
+// JA選択後にページ遷移する関数
+function navigateWithJAData(url, jaCode, year) {
+    setJASelection(jaCode, year);
+    // Add JA and year as URL parameters to ensure they are passed
+    const separator = url.includes('?') ? '&' : '?';
+    const urlWithParams = `${url}${separator}ja_code=${jaCode}&year=${year}`;
+    setTimeout(() => {
+        window.location.href = urlWithParams;
+    }, 100);
+}
+
+// 残高一覧を新しいタブで開く関数
+function openAccountBalances(jaCode, year) {
+    setJASelection(jaCode, year);
+    // Add JA and year as URL parameters to ensure they are passed
+    const baseUrl = '{{ url_for("account_balances") }}';
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    const urlWithParams = `${baseUrl}${separator}ja_code=${jaCode}&year=${year}`;
+    setTimeout(() => {
+        window.open(urlWithParams, '_blank');
+    }, 100);
+}
+</script>
+{% endblock %}

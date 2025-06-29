@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}勘定科目残高再計算{% endblock %}
+
+{% block head %}
+<script src="{{ url_for('static', filename='js/deposit_fix.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>勘定科目残高再計算</h2>
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">残高再計算フォーム</h5>
+        </div>
+        <div class="card-body">
+            <p class="alert alert-info">
+                <i class="fas fa-info-circle"></i> マッピングが完了しても残高が正しく表示されない場合は、こちらで残高を再計算してください。
+                既存の残高データを削除して、CSVデータから再度計算し直します。
+            </p>
+            
+            <form method="POST" action="{{ url_for('recalculate_balances_page') }}">
+                <div class="form-group mb-3">
+                    <label for="ja_code"><strong>JA</strong></label>
+                    <select name="ja_code" id="ja_code" class="form-control" required>
+                        <option value="">-- JAを選択してください --</option>
+                        {% for ja in jas %}
+                        <option value="{{ ja.ja_code }}" {% if ja.ja_code == selected_ja_code %}selected{% endif %}>
+                            {{ ja.name }} ({{ ja.ja_code }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="year"><strong>年度</strong></label>
+                    <input type="number" name="year" id="year" class="form-control" value="{{ selected_year or 2025 }}" required>
+                </div>
+                
+                <div class="form-group mb-3">
+                    <label for="file_type"><strong>財務諸表タイプ</strong></label>
+                    <select name="file_type" id="file_type" class="form-control">
+                        <option value="">-- 全てのタイプ --</option>
+                        <option value="bs">貸借対照表 (BS)</option>
+                        <option value="pl">損益計算書 (PL)</option>
+                        <option value="cf">キャッシュフロー計算書 (CF)</option>
+                    </select>
+                    <small class="form-text text-muted">
+                        ※ タイプを選択しない場合、全てのタイプの残高が再計算されます
+                    </small>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> 注意: 再計算を実行すると、現在の残高データは削除され、CSVデータから新しく計算し直されます。
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-sync-alt"></i> 残高を再計算
+                    </button>
+                    <button type="button" id="fix-deposit-btn" class="btn btn-warning">
+                        <i class="fas fa-piggy-bank"></i> 預金残高のみ再計算
+                    </button>
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> 戻る
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <h4>残高再計算について</h4>
+        <div class="card">
+            <div class="card-body">
+                <p>残高再計算処理では、以下の作業が行われます:</p>
+                <ol>
+                    <li>選択したJA、年度、財務諸表タイプの既存の標準勘定科目残高データを削除</li>
+                    <li>CSVデータとマッピング情報を使用して、新しい残高データを作成</li>
+                    <li>各勘定科目の値を正しく設定（数値変換や△記号の処理なども含む）</li>
+                </ol>
+                <p>この機能は以下のような場合に役立ちます:</p>
+                <ul>
+                    <li>マッピングが完了しているのに残高が表示されない</li>
+                    <li>残高の値が正しくない</li>
+                    <li>マッピングを修正した後、反映されない</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

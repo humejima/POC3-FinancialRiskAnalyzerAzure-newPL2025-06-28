@@ -1,0 +1,692 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-9">
+        <h1 class="display-5 mb-3">JA財務リスク分析ダッシュボード</h1>
+    </div>
+    <div class="col-md-3">
+        <!-- JA & Year Selector -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fa-solid fa-building-columns"></i> JA選択</h5>
+                <form action="{{ url_for('select_ja') }}" method="post" class="mt-2">
+                    <div class="mb-3">
+                        <label for="ja_code" class="form-label">JA</label>
+                        <select name="ja_code" id="ja_code" class="form-select">
+                            {% for ja in jas %}
+                            <option value="{{ ja.ja_code }}" {% if ja.ja_code == selected_ja_code %}selected{% endif %}>{{ ja.name }} ({{ ja.prefecture }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="year" class="form-label">年度</label>
+                        <select name="year" id="year" class="form-select">
+                            <option value="2021" {% if selected_year == 2021 %}selected{% endif %}>2021</option>
+                            <option value="2022" {% if selected_year == 2022 %}selected{% endif %}>2022</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-secondary w-100">選択</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Availability Warning -->
+{% if not (data_availability.bs and data_availability.pl and data_availability.cf) %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-warning" role="alert">
+            <h4 class="alert-heading"><i class="fa-solid fa-triangle-exclamation"></i> {{ selected_ja_code }} ({{ selected_year }}年度) のデータが不足しています</h4>
+            <p>選択されたJAと会計年度の財務データが完全ではありません。分析を実行するには、すべての財務諸表データが必要です。</p>
+            <hr>
+            <p class="mb-0">
+                {% if not data_availability.bs %}<span class="badge bg-danger">貸借対照表(BS)</span>{% endif %}
+                {% if not data_availability.pl %}<span class="badge bg-danger">損益計算書(PL)</span>{% endif %}
+                {% if not data_availability.cf %}<span class="badge bg-danger">キャッシュフロー計算書(CF)</span>{% endif %}
+                のデータをインポートしてください。
+                <a href="{{ url_for('data_import') }}" class="btn btn-warning mt-2">
+                    <i class="fa-solid fa-upload"></i> データをインポートする
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Data Availability Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card {% if data_availability.bs %}border-success{% else %}border-danger{% endif %}">
+            <div class="card-body">
+                <h5 class="card-title" style="min-height: 28px; display: flex; align-items: center;">
+                    <i class="fa-solid {% if data_availability.bs %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %}" style="margin-right: 8px;"></i>
+                    貸借対照表 (BS)
+                </h5>
+                <p class="card-text">
+                    {% if data_availability.bs %}
+                    ステータス：<span class="badge bg-success">データ取込済</span>
+                    {% else %}
+                    ステータス：<span class="badge bg-danger">未取込</span>
+                    {% endif %}
+                </p>
+                <a href="{{ url_for('data_import') }}" class="btn btn-sm {% if data_availability.bs %}btn-outline-success{% else %}btn-outline-danger{% endif %}">
+                    {% if data_availability.bs %}更新する{% else %}取込む{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card {% if data_availability.pl %}border-success{% else %}border-danger{% endif %}">
+            <div class="card-body">
+                <h5 class="card-title" style="min-height: 28px; display: flex; align-items: center;">
+                    <i class="fa-solid {% if data_availability.pl %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %}" style="margin-right: 8px;"></i>
+                    損益計算書 (PL)
+                </h5>
+                <p class="card-text">
+                    {% if data_availability.pl %}
+                    ステータス：<span class="badge bg-success">データ取込済</span>
+                    {% else %}
+                    ステータス：<span class="badge bg-danger">未取込</span>
+                    {% endif %}
+                </p>
+                <a href="{{ url_for('data_import') }}" class="btn btn-sm {% if data_availability.pl %}btn-outline-success{% else %}btn-outline-danger{% endif %}">
+                    {% if data_availability.pl %}更新する{% else %}取込む{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card {% if data_availability.cf %}border-success{% else %}border-danger{% endif %}">
+            <div class="card-body">
+                <h5 class="card-title" style="min-height: 28px; display: flex; align-items: center;">
+                    <i class="fa-solid {% if data_availability.cf %}fa-check-circle text-success{% else %}fa-times-circle text-danger{% endif %}" style="margin-right: 8px;"></i>
+                    CF計算書 (CF)
+                </h5>
+                <p class="card-text">
+                    {% if data_availability.cf %}
+                    ステータス：<span class="badge bg-success">データ取込済</span>
+                    {% else %}
+                    ステータス：<span class="badge bg-danger">未取込</span>
+                    {% endif %}
+                </p>
+                <a href="{{ url_for('data_import') }}" class="btn btn-sm {% if data_availability.cf %}btn-outline-success{% else %}btn-outline-danger{% endif %}">
+                    {% if data_availability.cf %}更新する{% else %}取込む{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Risk Assessment Section -->
+<div class="row">
+    <!-- Overall Risk Card -->
+    <div class="col-md-7">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fa-solid fa-gauge-high"></i> 総合リスク評価</h5>
+                {% if not risk_assessment or risk_assessment.status != 'success' %}
+                <span class="badge bg-warning">未評価</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if risk_assessment and risk_assessment.status == 'success' %}
+                <div class="text-center mb-3">
+                    <div class="display-4 mb-2">
+                        {% if risk_assessment.overall_risk_level == "極めて高い" %}
+                        <span class="text-danger">{{ risk_assessment.overall_risk_level }}</span>
+                        {% elif risk_assessment.overall_risk_level == "高い" %}
+                        <span class="text-warning">{{ risk_assessment.overall_risk_level }}</span>
+                        {% elif risk_assessment.overall_risk_level == "中程度" %}
+                        <span class="text-info">{{ risk_assessment.overall_risk_level }}</span>
+                        {% elif risk_assessment.overall_risk_level == "低い" %}
+                        <span class="text-success">{{ risk_assessment.overall_risk_level }}</span>
+                        {% elif risk_assessment.overall_risk_level == "極めて低い" %}
+                        <span class="text-primary">{{ risk_assessment.overall_risk_level }}</span>
+                        {% else %}
+                        <span>{{ risk_assessment.overall_risk_level }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-muted">
+                        スコア：{{ "%.2f"|format(risk_assessment.overall_score) }}/5.0
+                    </div>
+                </div>
+                
+                <!-- Risk Radar Chart (DOM要素ID固定) -->
+                <div id="radar-chart-container" class="chart-container" style="height: 450px; position: relative;">
+                    <canvas id="riskRadarChart" width="400" height="400"></canvas>
+                </div>
+                
+                <!-- Chart initialization script (only when data is available) -->
+                <script>
+                // グローバルスコープでチャート変数を初期化
+                let riskChart;
+                
+                // 即時関数でチャート初期化
+                (function() {
+                    console.log("チャート初期化処理を開始します");
+                    const chartCanvas = document.getElementById('riskRadarChart');
+                    
+                    if (!chartCanvas) {
+                        console.error("チャートキャンバス要素が見つかりません");
+                        return;
+                    }
+                    
+                    // APIからリスクデータを取得
+                    fetch(`/api/risk_data?ja_code={{ selected_ja_code }}&year={{ selected_year }}&t=${new Date().getTime()}`)
+                        .then(response => {
+                            console.log("API response status:", response.status);
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log("Risk data received:", data);
+                            
+                            if (data && data.current_year) {
+                                // カテゴリとスコアを取得（固定順序でデータを設定）
+                                const chartLabels = [
+                                    "収益性", "効率性", "安全性", "キャッシュフロー", "流動性"
+                                ];
+                                
+                                const currentScores = [
+                                    data.current_year.profitability || 0,
+                                    data.current_year.efficiency || 0,
+                                    data.current_year.safety || 0,
+                                    data.current_year.cash_flow || 0,
+                                    data.current_year.liquidity || 0
+                                ];
+                                
+                                // 前年度データがある場合
+                                let previousScores = null;
+                                if (data.has_comparison && data.previous_year) {
+                                    previousScores = [
+                                        data.previous_year.profitability || 0,
+                                        data.previous_year.efficiency || 0,
+                                        data.previous_year.safety || 0,
+                                        data.previous_year.cash_flow || 0,
+                                        data.previous_year.liquidity || 0
+                                    ];
+                                }
+                                
+                                console.log("チャートデータ準備完了:", chartLabels, currentScores);
+                                
+                                // 直接Chart.jsを使用してチャートを描画
+                                const ctx = chartCanvas.getContext('2d');
+                                
+                                // データセット配列を準備
+                                const datasets = [{
+                                    label: '現在のリスク耐性',
+                                    data: currentScores,
+                                    backgroundColor: 'rgba(54, 162, 235, 0.3)',
+                                    borderColor: 'rgba(54, 162, 235, 1)',
+                                    borderWidth: 2.5,
+                                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                                    pointRadius: 5
+                                }];
+                                
+                                // 前年度データがある場合は追加
+                                if (previousScores) {
+                                    datasets.push({
+                                        label: '前年度リスク耐性',
+                                        data: previousScores,
+                                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                                        borderColor: 'rgba(255, 159, 64, 1)',
+                                        borderWidth: 2,
+                                        pointBackgroundColor: 'rgba(255, 159, 64, 1)',
+                                        pointRadius: 4,
+                                        borderDash: [5, 5]
+                                    });
+                                }
+                                
+                                // 既存のチャートをクリア
+                                if (riskChart) {
+                                    riskChart.destroy();
+                                }
+                                
+                                // チャート作成
+                                riskChart = new Chart(ctx, {
+                                    type: 'radar',
+                                    data: {
+                                        labels: chartLabels,
+                                        datasets: datasets
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        scales: {
+                                            r: {
+                                                min: 0,
+                                                max: 5,
+                                                beginAtZero: true,
+                                                ticks: {
+                                                    stepSize: 1
+                                                }
+                                            }
+                                        }
+                                    }
+                                });
+                                
+                                console.log("レーダーチャート描画完了");
+                            }
+                        })
+                        .catch(error => {
+                            console.error("リスクデータ取得エラー:", error);
+                        });
+                })();
+                </script>
+                
+                <div class="p-3">
+                {% else %}
+                <!-- No Data Available Message -->
+                <div class="text-center py-5">
+                    <div class="text-muted mb-3">
+                        <i class="fa-solid fa-chart-line fa-3x mb-3" style="opacity: 0.3;"></i>
+                    </div>
+                    <h5 class="text-muted">リスク分析データがありません</h5>
+                    <p class="text-muted mb-4">
+                        財務データをインポートし、マッピングを完了してから分析を実行してください。
+                    </p>
+                    <div class="d-flex flex-column gap-2 align-items-center">
+                        <a href="{{ url_for('data_import') }}" class="btn btn-primary">
+                            <i class="fa-solid fa-upload"></i> データインポート
+                        </a>
+                        <a href="{{ url_for('mapping') }}" class="btn btn-outline-secondary">
+                            <i class="fa-solid fa-link"></i> マッピング設定
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="p-3">
+                    <h5>リスクカテゴリー評価</h5>
+                    {% if risk_assessment and risk_assessment.category_scores %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th rowspan="2">カテゴリー</th>
+                                        <th colspan="2">スコア</th>
+                                        <th rowspan="2">評価</th>
+                                        <th rowspan="2">前年比</th>
+                                        <th rowspan="2">変化の理由</th>
+                                    </tr>
+                                    <tr>
+                                        <th>本年度</th>
+                                        <th>前年度</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for category, score in risk_assessment.category_scores.items() %}
+                                        <tr>
+                                            <td>
+                                                {% if category == 'liquidity' %}流動性
+                                                {% elif category == 'safety' %}安全性
+                                                {% elif category == 'profitability' %}収益性
+                                                {% elif category == 'efficiency' %}効率性
+                                                {% elif category == 'cash_flow' %}キャッシュフロー
+                                                {% else %}{{ category }}{% endif %}
+                                            </td>
+                                            <td>{{ "%.1f"|format(score) }}</td>
+                                            <td>
+                                                {% if risk_assessment.previous_year_scores and category in risk_assessment.previous_year_scores %}
+                                                    {{ "%.1f"|format(risk_assessment.previous_year_scores[category]) }}
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if score <= 1.5 %}
+                                                    <span class="badge bg-danger">極めて高いリスク</span>
+                                                {% elif score <= 2.5 %}
+                                                    <span class="badge bg-warning">高いリスク</span>
+                                                {% elif score <= 3.5 %}
+                                                    <span class="badge bg-info">中程度</span>
+                                                {% elif score <= 4.5 %}
+                                                    <span class="badge bg-success">低いリスク</span>
+                                                {% else %}
+                                                    <span class="badge bg-primary">極めて低いリスク</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if risk_assessment.previous_year_scores and category in risk_assessment.previous_year_scores %}
+                                                    {% set prev_score = risk_assessment.previous_year_scores[category] %}
+                                                    {% set diff = score - prev_score %}
+                                                    {% if diff > 0.1 %}
+                                                        <span class="text-success"><i class="fa-solid fa-arrow-up"></i> {{ "%.1f"|format(diff) }}</span>
+                                                    {% elif diff < -0.1 %}
+                                                        <span class="text-danger"><i class="fa-solid fa-arrow-down"></i> {{ "%.1f"|format(diff|abs) }}</span>
+                                                    {% else %}
+                                                        <span class="text-muted"><i class="fa-solid fa-equals"></i> 変化なし</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if risk_assessment.previous_year_scores and category in risk_assessment.previous_year_scores %}
+                                                    {% set prev_score = risk_assessment.previous_year_scores[category] %}
+                                                    {% set diff = score - prev_score %}
+                                                    {% if category == 'efficiency' and diff < -0.1 %}
+                                                        <small>資産回転率の低下と営業利益率の減少が主な要因。本年度は資産増加に対して収益が追いついていません。</small>
+                                                    {% elif category == 'efficiency' and diff > 0.1 %}
+                                                        <small>資産回転率の向上と営業利益率の改善により効率性が向上しました。</small>
+                                                    {% elif category == 'profitability' and diff < -0.1 %}
+                                                        <small>ROAとROEの低下が見られます。事業収益性の向上が必要です。</small>
+                                                    {% elif category == 'profitability' and diff > 0.1 %}
+                                                        <small>ROAとROEが改善し、収益性全体が向上しています。</small>
+                                                    {% elif category == 'safety' and diff < -0.1 %}
+                                                        <small>負債比率の上昇が見られます。財務安全性が前年より低下しています。</small>
+                                                    {% elif category == 'safety' and diff > 0.1 %}
+                                                        <small>自己資本比率の改善により安全性指標が強化されました。</small>
+                                                    {% elif category == 'liquidity' and diff < -0.1 %}
+                                                        <small>流動比率の低下が見られます。短期債務に対する流動資産が減少しています。</small>
+                                                    {% elif category == 'liquidity' and diff > 0.1 %}
+                                                        <small>流動比率の改善により短期的な支払能力が向上しました。</small>
+                                                    {% elif category == 'cash_flow' and diff < -0.1 %}
+                                                        <small>営業キャッシュフローが減少しており、収益の質に懸念があります。</small>
+                                                    {% elif category == 'cash_flow' and diff > 0.1 %}
+                                                        <small>営業キャッシュフローが改善し、資金創出能力が向上しています。</small>
+                                                    {% else %}
+                                                        <small>大きな変化は見られません。</small>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">リスク評価データがありません</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Key Risk Issues -->
+    <div class="col-md-7">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fa-solid fa-triangle-exclamation"></i> 主要リスク項目</h5>
+            </div>
+            <div class="card-body">
+                {% if risk_issues %}
+                <div class="table-responsive">
+                    <table class="table table-hover" id="risk-issues-table">
+                        <thead>
+                            <tr>
+                                <th>リスク領域</th>
+                                <th>指標</th>
+                                <th>値</th>
+                                <th>リスクレベル</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for issue in risk_issues %}
+                            <tr>
+                                <td>{{ issue.type }}</td>
+                                <td>{{ issue.name }}</td>
+                                <td>{{ "%.2f"|format(issue.value) }}</td>
+                                <td>
+                                    {% if issue.risk_level == "極めて高い" %}
+                                    <span class="badge bg-danger">{{ issue.risk_level }}</span>
+                                    {% elif issue.risk_level == "高い" %}
+                                    <span class="badge bg-danger">{{ issue.risk_level }}</span>
+                                    {% elif issue.risk_level == "中程度" %}
+                                    <span class="badge bg-info">{{ issue.risk_level }}</span>
+                                    {% elif issue.risk_level == "低い" %}
+                                    <span class="badge bg-success">{{ issue.risk_level }}</span>
+                                    {% elif issue.risk_level == "極めて低い" %}
+                                    <span class="badge bg-primary">{{ issue.risk_level }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ issue.risk_level }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if risk_issues|length > 5 %}
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('analysis') }}" class="btn btn-secondary btn-sm">すべてのリスク項目を表示</a>
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="text-center p-4">
+                    <p class="text-muted">リスク項目がまだありません。分析を実行してリスク評価を行ってください。</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Quick Actions Card -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fa-solid fa-bolt"></i> クイックアクション</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <a href="{{ url_for('data_import') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fa-solid fa-file-import"></i> データ取込
+                        </a>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <a href="{{ url_for('mapping') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fa-solid fa-code-fork"></i> マッピング
+                        </a>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <a href="{{ url_for('analysis') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fa-solid fa-chart-column"></i> リスク分析
+                        </a>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fa-solid fa-file-lines"></i> レポート
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// リスク項目テーブルを更新する関数
+function updateRiskIssuesTable(issues) {
+    console.log("リスク項目更新関数が呼び出されました:", issues);
+    
+    // テーブルの本体要素を取得
+    const tableBody = document.querySelector('#risk-issues-table tbody');
+    if (!tableBody) {
+        console.warn("テーブル要素が見つかりません");
+        return;
+    }
+    
+    if (!issues || issues.length === 0) {
+        console.warn("リスク項目データがありません");
+        return;
+    }
+    
+    // テーブルの内容をクリアして新しい内容に置き換え
+    tableBody.innerHTML = '';
+    
+    // 最大5件まで表示
+    const maxIssues = Math.min(issues.length, 5);
+    
+    for (let i = 0; i < maxIssues; i++) {
+        const issue = issues[i];
+        const row = document.createElement('tr');
+        
+        // リスクレベルに応じたバッジのクラスを決定
+        let badgeClass = 'bg-secondary';
+        // 標準化されたリスクレベル表示に対応
+        if (issue.risk_level === '極めて高い') {
+            badgeClass = 'bg-danger';
+        } else if (issue.risk_level === '高い') {
+            badgeClass = 'bg-danger';
+        } else if (issue.risk_level === '中程度') {
+            badgeClass = 'bg-info';
+        } else if (issue.risk_level === '低い') {
+            badgeClass = 'bg-success';
+        } else if (issue.risk_level === '極めて低い') {
+            badgeClass = 'bg-primary';
+        }
+        
+        // 行の内容を設定
+        row.innerHTML = `
+            <td>${issue.type}</td>
+            <td>${issue.name}</td>
+            <td>${parseFloat(issue.value).toFixed(2)}</td>
+            <td><span class="badge ${badgeClass}">${issue.risk_level}</span></td>
+        `;
+        
+        tableBody.appendChild(row);
+    }
+    
+    // 「すべて表示」ボタンの表示/非表示を設定
+    const showAllButton = document.querySelector('#show-all-issues');
+    if (showAllButton) {
+        showAllButton.style.display = issues.length > 5 ? 'block' : 'none';
+    }
+}
+
+// フロントエンドの更新イベント
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('ダッシュボードページが読み込まれました');
+    
+    // リスクチャート描画機能
+    function drawRiskChart() {
+        const currentJaCode = '{{ selected_ja_code }}';
+        const currentYear = '{{ selected_year }}';
+        
+        if (!currentJaCode || !currentYear) {
+            console.warn('JA選択または年度が設定されていません');
+            return;
+        }
+        
+        // APIからデータを取得
+        fetch(`/api/risk_data?ja_code=${currentJaCode}&year=${currentYear}`)
+            .then(response => {
+                console.log('API response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                // APIからのレスポンスを処理
+                console.log('Risk data received:', data);
+                if (!data) {
+                    console.warn('リスクデータが取得できませんでした');
+                    return;
+                }
+                
+                // リスクチャート用データの準備
+                const categoryMapping = {
+                    'liquidity': '流動性',
+                    'safety': '安全性',
+                    'profitability': '収益性',
+                    'efficiency': '効率性',
+                    'cash_flow': 'キャッシュフロー'
+                };
+                
+                const chartLabels = [];
+                const currentYearData = [];
+                const previousYearData = [];
+                const hasComparison = data.has_comparison && data.previous_year;
+                
+                // データを準備
+                for (const [category, score] of Object.entries(data.current_year)) {
+                    const displayName = categoryMapping[category] || category;
+                    chartLabels.push(displayName);
+                    currentYearData.push(score);
+                    
+                    if (hasComparison) {
+                        previousYearData.push(data.previous_year[category] || 0);
+                    }
+                }
+                
+                // チャートの描画
+                if (typeof Chart !== 'undefined' && chartLabels.length > 0) {
+                    const ctx = document.getElementById('riskRadarChart');
+                    if (ctx) {
+                        // chart_utils.jsに定義した関数を使用
+                        if (typeof drawRiskRadarChart === 'function') {
+                            drawRiskRadarChart('riskRadarChart', chartLabels, currentYearData, 
+                                hasComparison ? previousYearData : []);
+                            console.log('レーダーチャートを描画しました（前年比較付き）');
+                        } else {
+                            // chart_utils.jsが読み込まれていない場合のフォールバック
+                            const existingChart = Chart.getChart(ctx);
+                            if (existingChart) {
+                                existingChart.destroy();
+                            }
+                            
+                            // データセット準備
+                            const datasets = [{
+                                label: '現在のリスク耐性',
+                                data: currentYearData,
+                                backgroundColor: 'rgba(54, 162, 235, 0.3)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 2.5,
+                                pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                                pointRadius: 5
+                            }];
+                            
+                            // 前年データがある場合は追加
+                            if (hasComparison) {
+                                datasets.push({
+                                    label: '前年度リスク耐性',
+                                    data: previousYearData,
+                                    backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                                    borderColor: 'rgba(255, 159, 64, 1)',
+                                    borderWidth: 2,
+                                    pointBackgroundColor: 'rgba(255, 159, 64, 1)',
+                                    pointRadius: 4,
+                                    borderDash: [5, 5]
+                                });
+                            }
+                            
+                            new Chart(ctx.getContext('2d'), {
+                                type: 'radar',
+                                data: {
+                                    labels: chartLabels,
+                                    datasets: datasets
+                                },
+                                options: {
+                                    scales: {
+                                        r: {
+                                            min: 0,
+                                            max: 5,
+                                            ticks: {
+                                                stepSize: 1
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                            console.log('レーダーチャートが描画されました');
+                        }
+                    } else {
+                        console.warn('チャート要素が見つかりません');
+                    }
+                } else {
+                    console.warn('Chart.jsが読み込まれていないか、データがありません');
+                }
+            })
+            .catch(error => {
+                console.error('リスクデータの取得中にエラーが発生しました:', error);
+            });
+        
+    }
+    
+    // ページ読み込み後にチャートを描画
+    setTimeout(drawRiskChart, 500);
+});
+</script>
+{% endblock %}

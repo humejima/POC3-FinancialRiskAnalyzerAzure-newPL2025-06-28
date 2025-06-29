@@ -1,0 +1,11 @@
+/* 直接的なスタイルシート - 合計勘定科目用 */
+tr[data-code="2900"] td,
+tr[data-code="4900"] td,
+tr[data-code="5900"] td,
+tr[data-code="5950"] td,
+tr[data-code="5951"] td {
+    border-top: 3px solid #333 !important;
+    border-bottom: 3px solid #333 !important;
+    background-color: #f0f0f0 !important;
+    font-weight: bold !important;
+}

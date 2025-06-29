@@ -1,0 +1,314 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mt-4">標準勘定科目一覧</h1>
+    
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="accountsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link active" id="bs-tab" data-bs-toggle="tab" href="#bs" role="tab" aria-controls="bs" aria-selected="true">貸借対照表（BS）</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="pl-tab" data-bs-toggle="tab" href="#pl" role="tab" aria-controls="pl" aria-selected="false">損益計算書（PL）</a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link" id="cf-tab" data-bs-toggle="tab" href="#cf" role="tab" aria-controls="cf" aria-selected="false">キャッシュフロー計算書（CF）</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content" id="accountsTabsContent">
+                        <!-- BS科目 -->
+                        <div class="tab-pane fade show active" id="bs" role="tabpanel" aria-labelledby="bs-tab">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5>貸借対照表（BS）標準勘定科目</h5>
+                                <div>
+                                    <form action="{{ url_for('delete_all_standard_accounts') }}" method="post" class="d-inline" onsubmit="return confirm('貸借対照表（BS）の標準勘定科目をすべて削除してもよろしいですか？マッピング情報も削除されます。');">
+                                        <input type="hidden" name="financial_statement" value="bs">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i> 全部削除
+                                        </button>
+                                    </form>
+                                    <a href="{{ url_for('export_standard_accounts_file', file_type='bs', format='csv') }}" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-download"></i> CSVエクスポート
+                                    </a>
+                                    <a href="{{ url_for('export_standard_accounts_file', file_type='bs', format='excel') }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-file-earmark-spreadsheet"></i> Excelエクスポート
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover table-sm">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th style="width: 8%">コード</th>
+                                            <th style="width: 25%">勘定科目名</th>
+                                            <th style="width: 15%">区分</th>
+                                            <th style="width: 10%">上位コード</th>
+                                            <th style="width: 8%">表示順</th>
+                                            <th style="width: 12%">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for account in bs_accounts %}
+                                        {% set is_total_account = account.code in ['2900', '4900', '5900', '5950', '5951'] %}
+                                        <tr>
+                                            <td><small>{{ account.code }}</small></td>
+                                            <td><small>{{ account.name }}</small></td>
+                                            <td><small>{{ account.account_type }}</small></td>
+                                            <td><small>{{ account.parent_code or '－' }}</small></td>
+                                            <td><small>{{ account.display_order }}</small></td>
+                                            <td>
+                                                <a href="{{ url_for('edit_standard_account', account_id=account.id) }}" class="btn btn-xs btn-outline-primary py-0 px-1"><small>編集</small></a>
+                                                <a href="{{ url_for('delete_standard_account', account_id=account.id) }}" class="btn btn-xs btn-outline-danger py-0 px-1" onclick="return confirm('この勘定科目を削除してもよろしいですか？');"><small>削除</small></a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- PL科目 -->
+                        <div class="tab-pane fade" id="pl" role="tabpanel" aria-labelledby="pl-tab">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5>損益計算書（PL）標準勘定科目</h5>
+                                <div>
+                                    <form action="{{ url_for('delete_all_standard_accounts') }}" method="post" class="d-inline" onsubmit="return confirm('損益計算書（PL）の標準勘定科目をすべて削除してもよろしいですか？マッピング情報も削除されます。');">
+                                        <input type="hidden" name="financial_statement" value="pl">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i> 全部削除
+                                        </button>
+                                    </form>
+                                    <a href="{{ url_for('export_standard_accounts_file', file_type='pl', format='csv') }}" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-download"></i> CSVエクスポート
+                                    </a>
+                                    <a href="{{ url_for('export_standard_accounts_file', file_type='pl', format='excel') }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-file-earmark-spreadsheet"></i> Excelエクスポート
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover table-sm">
+                                    <thead class="table-success">
+                                        <tr>
+                                            <th style="width: 8%">コード</th>
+                                            <th style="width: 25%">勘定科目名</th>
+                                            <th style="width: 15%">区分</th>
+                                            <th style="width: 10%">上位コード</th>
+                                            <th style="width: 8%">表示順</th>
+                                            <th style="width: 12%">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for account in pl_accounts %}
+                                        <tr>
+                                            <td><small>{{ account.code }}</small></td>
+                                            <td><small>{{ account.name }}</small></td>
+                                            <td><small>{{ account.account_type }}</small></td>
+                                            <td><small>{{ account.parent_code or '－' }}</small></td>
+                                            <td><small>{{ account.display_order }}</small></td>
+                                            <td>
+                                                <a href="{{ url_for('edit_standard_account', account_id=account.id) }}" class="btn btn-xs btn-outline-primary py-0 px-1"><small>編集</small></a>
+                                                <a href="{{ url_for('delete_standard_account', account_id=account.id) }}" class="btn btn-xs btn-outline-danger py-0 px-1" onclick="return confirm('この勘定科目を削除してもよろしいですか？');"><small>削除</small></a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- CF科目 -->
+                        <div class="tab-pane fade" id="cf" role="tabpanel" aria-labelledby="cf-tab">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5>キャッシュフロー計算書（CF）標準勘定科目</h5>
+                                <div>
+                                    <form action="{{ url_for('delete_all_standard_accounts') }}" method="post" class="d-inline" onsubmit="return confirm('キャッシュフロー計算書（CF）の標準勘定科目をすべて削除してもよろしいですか？マッピング情報も削除されます。');">
+                                        <input type="hidden" name="financial_statement" value="cf">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i> 全部削除
+                                        </button>
+                                    </form>
+                                    <a href="{{ url_for('export_standard_accounts_file', file_type='cf', format='csv') }}" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-download"></i> CSVエクスポート
+                                    </a>
+                                    <a href="{{ url_for('export_standard_accounts_file', file_type='cf', format='excel') }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-file-earmark-spreadsheet"></i> Excelエクスポート
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover table-sm">
+                                    <thead class="table-info">
+                                        <tr>
+                                            <th style="width: 8%">コード</th>
+                                            <th style="width: 25%">勘定科目名</th>
+                                            <th style="width: 15%">区分</th>
+                                            <th style="width: 10%">上位コード</th>
+                                            <th style="width: 8%">表示順</th>
+                                            <th style="width: 12%">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for account in cf_accounts %}
+                                        <tr>
+                                            <td><small>{{ account.code }}</small></td>
+                                            <td><small>{{ account.name }}</small></td>
+                                            <td><small>{{ account.account_type }}</small></td>
+                                            <td><small>{{ account.parent_code or '－' }}</small></td>
+                                            <td><small>{{ account.display_order }}</small></td>
+                                            <td>
+                                                <a href="{{ url_for('edit_standard_account', account_id=account.id) }}" class="btn btn-xs btn-outline-primary py-0 px-1"><small>編集</small></a>
+                                                <a href="{{ url_for('delete_standard_account', account_id=account.id) }}" class="btn btn-xs btn-outline-danger py-0 px-1" onclick="return confirm('この勘定科目を削除してもよろしいですか？');"><small>削除</small></a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">標準勘定科目管理</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card mb-3">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0">標準勘定科目インポート</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form action="{{ url_for('import_standard_accounts') }}" method="post" enctype="multipart/form-data">
+                                        <div class="mb-3">
+                                            <label for="csvFile" class="form-label">CSVファイル</label>
+                                            <input type="file" class="form-control" id="csvFile" name="file" accept=".csv" required>
+                                            <div class="form-text">UTF-8エンコーディングのCSV形式の標準勘定科目ファイルを選択してください。</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="statementType" class="form-label">財務諸表タイプ</label>
+                                            <select class="form-select" id="statementType" name="statement_type" required>
+                                                <option value="bs">貸借対照表（BS）</option>
+                                                <option value="pl">損益計算書（PL）</option>
+                                                <option value="cf">キャッシュフロー計算書（CF）</option>
+                                            </select>
+                                        </div>
+                                        <!-- デバッグ用機能追加 -->
+                                        <div class="form-check mb-3">
+                                            <input class="form-check-input" type="checkbox" id="useDebugImport" name="use_debug_import" value="1">
+                                            <label class="form-check-label" for="useDebugImport">
+                                                デバッグモードでインポート（エラー時に推奨）
+                                            </label>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">インポート</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card mb-3">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0">標準勘定科目の追加</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form action="{{ url_for('add_standard_account') }}" method="post">
+                                        <div class="mb-3">
+                                            <label for="code" class="form-label">科目コード</label>
+                                            <input type="text" class="form-control" id="code" name="code" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="name" class="form-label">科目名</label>
+                                            <input type="text" class="form-control" id="name" name="name" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="accountType" class="form-label">区分</label>
+                                            <input type="text" class="form-control" id="accountType" name="account_type">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="parentCode" class="form-label">上位科目コード</label>
+                                            <input type="text" class="form-control" id="parentCode" name="parent_code">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="financialStatement" class="form-label">財務諸表タイプ</label>
+                                            <select class="form-select" id="financialStatement" name="financial_statement" required>
+                                                <option value="bs">貸借対照表（BS）</option>
+                                                <option value="pl">損益計算書（PL）</option>
+                                                <option value="cf">キャッシュフロー計算書（CF）</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="displayOrder" class="form-label">表示順</label>
+                                            <input type="number" class="form-control" id="displayOrder" name="display_order" value="999">
+                                        </div>
+                                        <button type="submit" class="btn btn-success">追加</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="card mb-3">
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="mb-0">一括インポート</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-info">
+                                        <p>以下のボタンを押すと、添付されている標準勘定科目ファイルから全ての標準勘定科目を一括インポートします。</p>
+                                        <p class="mb-0"><strong>注意：</strong>既存の標準勘定科目はすべて削除されます。</p>
+                                    </div>
+                                    <a href="{{ url_for('import_all_standard_accounts_route') }}" class="btn btn-info w-100" onclick="return confirm('既存の標準勘定科目をすべて削除して一括インポートしますか？');">一括インポート</a>
+                                    <div class="mt-3">
+                                        <p class="text-muted small">対象ファイル：</p>
+                                        <ul class="text-muted small">
+                                            <li>attached_assets/標準勘定科目6.csv (BS/PL)</li>
+                                            <li>attached_assets/キャッシュフロー計算書標準科目テーブル.csv (CF)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // 合計科目を太字にする（非常にシンプルな実装）
+    // 各行を1つずつチェック（全角スペースなども考慮）
+    $('#bs tbody tr').each(function() {
+        var firstCell = $(this).find('td:first');
+        var cellText = firstCell.text().trim();
+        
+        // 特定の合計科目コードに一致するセルを持つ行全体を強調
+        if (cellText === '2900' || cellText === '4900' || 
+            cellText === '5900' || cellText === '5950' || 
+            cellText === '5951') {
+            $(this).find('td').css({
+                'font-weight': 'bold',
+                'color': '#000000',
+                'background-color': '#ffffff'
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
