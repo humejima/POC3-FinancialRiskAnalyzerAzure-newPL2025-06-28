@@ -1,0 +1,3608 @@
+{
+  "backup_info": {
+    "timestamp": "20250526_052127",
+    "ja_code": "JA007",
+    "year": 2021,
+    "description": "manual_backup_2025-05-26T05-21-28",
+    "total_mappings": 176,
+    "total_csv_records": 201
+  },
+  "mappings": [
+    {
+      "id": 167,
+      "original_account_name": "資産の部",
+      "standard_account_code": "10000",
+      "standard_account_name": "資産の部",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 168,
+      "original_account_name": "現金",
+      "standard_account_code": "11110",
+      "standard_account_name": "現金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 169,
+      "original_account_name": "有価証券",
+      "standard_account_code": "11200",
+      "standard_account_name": "有価証券",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 170,
+      "original_account_name": "国債",
+      "standard_account_code": "11210",
+      "standard_account_name": "国債",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 171,
+      "original_account_name": "地方債",
+      "standard_account_code": "11220",
+      "standard_account_name": "地方債",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 172,
+      "original_account_name": "社債",
+      "standard_account_code": "11230",
+      "standard_account_name": "社債",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 173,
+      "original_account_name": "株式",
+      "standard_account_code": "11240",
+      "standard_account_name": "株式",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 174,
+      "original_account_name": "貸出金",
+      "standard_account_code": "11300",
+      "standard_account_name": "貸出金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 175,
+      "original_account_name": "仮払金",
+      "standard_account_code": "11740",
+      "standard_account_name": "仮払金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 176,
+      "original_account_name": "未収収益",
+      "standard_account_code": "11720",
+      "standard_account_name": "未収収益",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 177,
+      "original_account_name": "前払費用",
+      "standard_account_code": "11710",
+      "standard_account_name": "前払費用",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 178,
+      "original_account_name": "有形固定資産",
+      "standard_account_code": "12100",
+      "standard_account_name": "有形固定資産",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 179,
+      "original_account_name": "建物",
+      "standard_account_code": "12110",
+      "standard_account_name": "建物",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 180,
+      "original_account_name": "土地",
+      "standard_account_code": "12150",
+      "standard_account_name": "土地",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 181,
+      "original_account_name": "無形固定資産",
+      "standard_account_code": "12200",
+      "standard_account_name": "無形固定資産",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 182,
+      "original_account_name": "借地権",
+      "standard_account_code": "12220",
+      "standard_account_name": "借地権",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 183,
+      "original_account_name": "ソフトウェア",
+      "standard_account_code": "12230",
+      "standard_account_name": "ソフトウェア",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 184,
+      "original_account_name": "外部出資",
+      "standard_account_code": "12300",
+      "standard_account_name": "外部出資",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 185,
+      "original_account_name": "貯金",
+      "standard_account_code": "21100",
+      "standard_account_name": "貯金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 186,
+      "original_account_name": "当座貯金",
+      "standard_account_code": "21110",
+      "standard_account_name": "当座貯金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 187,
+      "original_account_name": "普通貯金",
+      "standard_account_code": "21120",
+      "standard_account_name": "普通貯金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 188,
+      "original_account_name": "貯蓄貯金",
+      "standard_account_code": "21130",
+      "standard_account_name": "貯蓄貯金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 189,
+      "original_account_name": "通知貯金",
+      "standard_account_code": "21140",
+      "standard_account_name": "通知貯金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 190,
+      "original_account_name": "定期貯金",
+      "standard_account_code": "21150",
+      "standard_account_name": "定期貯金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 191,
+      "original_account_name": "仮受金",
+      "standard_account_code": "21530",
+      "standard_account_name": "仮受金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 192,
+      "original_account_name": "資産除去債務",
+      "standard_account_code": "22320",
+      "standard_account_name": "資産除去債務",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 193,
+      "original_account_name": "未払費用",
+      "standard_account_code": "21510",
+      "standard_account_name": "未払費用",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 194,
+      "original_account_name": "前受収益",
+      "standard_account_code": "21520",
+      "standard_account_name": "前受収益",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 195,
+      "original_account_name": "賞与引当金",
+      "standard_account_code": "21550",
+      "standard_account_name": "賞与引当金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 196,
+      "original_account_name": "退職給付引当金",
+      "standard_account_code": "22210",
+      "standard_account_name": "退職給付引当金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 197,
+      "original_account_name": "役員退職慰労引当金",
+      "standard_account_code": "22220",
+      "standard_account_name": "役員退職慰労引当金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 198,
+      "original_account_name": "繰延税金負債",
+      "standard_account_code": "22310",
+      "standard_account_name": "繰延税金負債",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 199,
+      "original_account_name": "出資金",
+      "standard_account_code": "31000",
+      "standard_account_name": "出資金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 200,
+      "original_account_name": "利益剰余金",
+      "standard_account_code": "33000",
+      "standard_account_name": "利益剰余金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 201,
+      "original_account_name": "その他有価証券評価差額金",
+      "standard_account_code": "34110",
+      "standard_account_name": "その他有価証券評価差額金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 202,
+      "original_account_name": "その他資産",
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 203,
+      "original_account_name": "その他の資産",
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 204,
+      "original_account_name": "その他の有形固定資産",
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 205,
+      "original_account_name": "その他の無形固定資産",
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 206,
+      "original_account_name": "系統出資",
+      "standard_account_code": "12310",
+      "standard_account_name": "系統出資金",
+      "confidence": 0.8,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.80"
+    },
+    {
+      "id": 207,
+      "original_account_name": "系統外出資",
+      "standard_account_code": "12320",
+      "standard_account_name": "系統外出資金",
+      "confidence": 0.8333333333333334,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.83"
+    },
+    {
+      "id": 208,
+      "original_account_name": "貸倒引当金",
+      "standard_account_code": "22200",
+      "standard_account_name": "引当金",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 209,
+      "original_account_name": "資産の部合計",
+      "standard_account_code": "10000",
+      "standard_account_name": "資産の部",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 210,
+      "original_account_name": "負債及び純資産の部",
+      "standard_account_code": "10000",
+      "standard_account_name": "資産の部",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 211,
+      "original_account_name": "別段貯金",
+      "standard_account_code": "21100",
+      "standard_account_name": "貯金",
+      "confidence": 0.5,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.50"
+    },
+    {
+      "id": 213,
+      "original_account_name": "その他負債",
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 214,
+      "original_account_name": "貯金利子諸税その他",
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 215,
+      "original_account_name": "その他の負債",
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 216,
+      "original_account_name": "諸引当金",
+      "standard_account_code": "22200",
+      "standard_account_name": "引当金",
+      "confidence": 0.75,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.75"
+    },
+    {
+      "id": 217,
+      "original_account_name": "特例業務負担金引当金",
+      "standard_account_code": "22200",
+      "standard_account_name": "引当金",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 218,
+      "original_account_name": "負債の部合計",
+      "standard_account_code": "20000",
+      "standard_account_name": "負債の部",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 219,
+      "original_account_name": "(うち後配出資金)",
+      "standard_account_code": "31000",
+      "standard_account_name": "出資金",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 220,
+      "original_account_name": "その他利益剰余金",
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 221,
+      "original_account_name": "固定資産圧縮積立金",
+      "standard_account_code": "12000",
+      "standard_account_name": "固定資産",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 222,
+      "original_account_name": "当期未処分剰余金",
+      "standard_account_code": "33300",
+      "standard_account_name": "当期未処分剰余金(未処理損失金)",
+      "confidence": 0.5,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.50"
+    },
+    {
+      "id": 223,
+      "original_account_name": "評価・換算差額等合計",
+      "standard_account_code": "34100",
+      "standard_account_name": "評価・換算差額等",
+      "confidence": 0.8,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.80"
+    },
+    {
+      "id": 224,
+      "original_account_name": "純資産の部合計",
+      "standard_account_code": "30000",
+      "standard_account_name": "純資産の部",
+      "confidence": 0.7142857142857143,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.71"
+    },
+    {
+      "id": 225,
+      "original_account_name": "負債及び純資産の部合計",
+      "standard_account_code": "10000",
+      "standard_account_name": "資産の部",
+      "confidence": 0.7,
+      "financial_statement": "bs",
+      "rationale": "類似度マッピング: 類似度 0.70"
+    },
+    {
+      "id": 226,
+      "original_account_name": "預け金",
+      "standard_account_code": "11180",
+      "standard_account_name": "その他預金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 227,
+      "original_account_name": "系統預け金",
+      "standard_account_code": "11160",
+      "standard_account_name": "系統預金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 228,
+      "original_account_name": "系統外預け金",
+      "standard_account_code": "11170",
+      "standard_account_name": "系統外預金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 229,
+      "original_account_name": "買入金銭債権",
+      "standard_account_code": "11420",
+      "standard_account_name": "その他販売債権",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 230,
+      "original_account_name": "金銭の信託",
+      "standard_account_code": "11250",
+      "standard_account_name": "投資信託",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 231,
+      "original_account_name": "外国証券",
+      "standard_account_code": "11260",
+      "standard_account_name": "その他有価証券",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 232,
+      "original_account_name": "受益証券",
+      "standard_account_code": "11250",
+      "standard_account_name": "投資信託",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 233,
+      "original_account_name": "手形貸付",
+      "standard_account_code": "11730",
+      "standard_account_name": "短期貸付金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 234,
+      "original_account_name": "証書貸付",
+      "standard_account_code": "11340",
+      "standard_account_name": "その他貸出金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 235,
+      "original_account_name": "当座貸越",
+      "standard_account_code": "11300",
+      "standard_account_name": "貸出金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 236,
+      "original_account_name": "金融機関貸付",
+      "standard_account_code": "11300",
+      "standard_account_name": "貸出金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 237,
+      "original_account_name": "従業員貸付金",
+      "standard_account_code": "11320",
+      "standard_account_name": "組合員以外貸出金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 238,
+      "original_account_name": "差入保証金",
+      "standard_account_code": "11180",
+      "standard_account_name": "その他預金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 239,
+      "original_account_name": "未決済為替貸",
+      "standard_account_code": "11340",
+      "standard_account_name": "その他貸出金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 240,
+      "original_account_name": "子会社等出資",
+      "standard_account_code": "12330",
+      "standard_account_name": "子会社出資金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 241,
+      "original_account_name": "債務保証見返",
+      "standard_account_code": "11340",
+      "standard_account_name": "その他貸出金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 242,
+      "original_account_name": "債券貸借取引受入担保金",
+      "standard_account_code": "21560",
+      "standard_account_name": "その他",
+      "confidence": 0.92,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングに類似(債券貸借取引受け入れ担保金, 類似度: 0.92)"
+    },
+    {
+      "id": 243,
+      "original_account_name": "借用金",
+      "standard_account_code": "21240",
+      "standard_account_name": "その他短期借入金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 244,
+      "original_account_name": "代理業務勘定",
+      "standard_account_code": "21400",
+      "standard_account_name": "経済受託債務",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 245,
+      "original_account_name": "貸付留保金",
+      "standard_account_code": "21500",
+      "standard_account_name": "その他流動負債",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 246,
+      "original_account_name": "未払法人税等",
+      "standard_account_code": "21510",
+      "standard_account_name": "未払費用",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 247,
+      "original_account_name": "未決済為替借",
+      "standard_account_code": "21240",
+      "standard_account_name": "その他短期借入金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 248,
+      "original_account_name": "相互援助積立金",
+      "standard_account_code": "33240",
+      "standard_account_name": "その他任意積立金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 249,
+      "original_account_name": "債務保証",
+      "standard_account_code": "11340",
+      "standard_account_name": "その他貸出金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 250,
+      "original_account_name": "再評価積立金",
+      "standard_account_code": "34130",
+      "standard_account_name": "土地再評価差額金",
+      "confidence": 0.57,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングに類似(土地再評価差額金, 類似度: 0.57)"
+    },
+    {
+      "id": 251,
+      "original_account_name": "利益準備金",
+      "standard_account_code": "33000",
+      "standard_account_name": "利益剰余金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 252,
+      "original_account_name": "経営基盤安定化積立金",
+      "standard_account_code": "33220",
+      "standard_account_name": "経営安定対策積立金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 253,
+      "original_account_name": "施設整備積立金",
+      "standard_account_code": "33200",
+      "standard_account_name": "任意積立金",
+      "confidence": 0.5,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングに類似(特別積立金, 類似度: 0.50)"
+    },
+    {
+      "id": 254,
+      "original_account_name": "特別積立金",
+      "standard_account_code": "33200",
+      "standard_account_name": "任意積立金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 255,
+      "original_account_name": "会員資本合計",
+      "standard_account_code": "31100",
+      "standard_account_name": "組合員出資金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 212,
+      "original_account_name": "譲渡性貯金",
+      "standard_account_code": "21180",
+      "standard_account_name": "その他貯金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "手動マッピング(更新)"
+    },
+    {
+      "id": 917,
+      "original_account_name": "SDGs 取組積立金",
+      "standard_account_code": "33200",
+      "standard_account_name": "任意積立金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "手動マッピング"
+    },
+    {
+      "id": 338,
+      "original_account_name": "経常収益",
+      "standard_account_code": "40000",
+      "standard_account_name": "経常収益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 339,
+      "original_account_name": "資金運用収益",
+      "standard_account_code": "41000",
+      "standard_account_name": "資金運用収益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 340,
+      "original_account_name": "貸出金利息",
+      "standard_account_code": "41100",
+      "standard_account_name": "貸出金利息",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 341,
+      "original_account_name": "預け金利息",
+      "standard_account_code": "41200",
+      "standard_account_name": "預け金利息",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 342,
+      "original_account_name": "有価証券利息配当金",
+      "standard_account_code": "41300",
+      "standard_account_name": "有価証券利息配当金",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 343,
+      "original_account_name": "その他受入利息",
+      "standard_account_code": "41490",
+      "standard_account_name": "その他受入利息",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 344,
+      "original_account_name": "役務取引等収益",
+      "standard_account_code": "41500",
+      "standard_account_name": "役務取引等収益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 345,
+      "original_account_name": "受入為替手数料",
+      "standard_account_code": "41510",
+      "standard_account_name": "受入為替手数料",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 346,
+      "original_account_name": "その他の受入手数料",
+      "standard_account_code": "41530",
+      "standard_account_name": "その他の受入手数料",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 347,
+      "original_account_name": "その他の役務取引等収益",
+      "standard_account_code": "41590",
+      "standard_account_name": "その他の役務取引等収益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 348,
+      "original_account_name": "その他事業収益",
+      "standard_account_code": "41600",
+      "standard_account_name": "その他事業収益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 349,
+      "original_account_name": "国債等債券売却益",
+      "standard_account_code": "41610",
+      "standard_account_name": "国債等債券売却益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 350,
+      "original_account_name": "金融派生商品収益",
+      "standard_account_code": "41620",
+      "standard_account_name": "金融派生商品収益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 351,
+      "original_account_name": "受取出資配当金",
+      "standard_account_code": "41630",
+      "standard_account_name": "受取出資配当金",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 352,
+      "original_account_name": "その他の事業収益",
+      "standard_account_code": "41690",
+      "standard_account_name": "その他の事業収益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 353,
+      "original_account_name": "その他経常収益",
+      "standard_account_code": "41700",
+      "standard_account_name": "その他経常収益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 354,
+      "original_account_name": "貸倒引当金戻入益",
+      "standard_account_code": "41710",
+      "standard_account_name": "貸倒引当金戻入益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 355,
+      "original_account_name": "償却債権取立益",
+      "standard_account_code": "41720",
+      "standard_account_name": "償却債権取立益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 356,
+      "original_account_name": "株式等売却益",
+      "standard_account_code": "41730",
+      "standard_account_name": "株式等売却益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 357,
+      "original_account_name": "金銭の信託運用益",
+      "standard_account_code": "41740",
+      "standard_account_name": "金銭の信託運用益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 358,
+      "original_account_name": "その他の経常収益",
+      "standard_account_code": "41790",
+      "standard_account_name": "その他の経常収益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 359,
+      "original_account_name": "経常費用",
+      "standard_account_code": "50000",
+      "standard_account_name": "経常費用",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 360,
+      "original_account_name": "資金調達費用",
+      "standard_account_code": "51000",
+      "standard_account_name": "資金調達費用",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 361,
+      "original_account_name": "貯金利息",
+      "standard_account_code": "51100",
+      "standard_account_name": "貯金利息",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 362,
+      "original_account_name": "譲渡性貯金利息",
+      "standard_account_code": "51200",
+      "standard_account_name": "譲渡性貯金利息",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 363,
+      "original_account_name": "債券貸借取引支払利息",
+      "standard_account_code": "51400",
+      "standard_account_name": "債券貸借取引支払利息",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 364,
+      "original_account_name": "その他支払利息",
+      "standard_account_code": "51500",
+      "standard_account_name": "その他支払利息",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 365,
+      "original_account_name": "役務取引等費用",
+      "standard_account_code": "51600",
+      "standard_account_name": "役務取引等費用",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 366,
+      "original_account_name": "支払為替手数料",
+      "standard_account_code": "51610",
+      "standard_account_name": "支払為替手数料",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 367,
+      "original_account_name": "その他の支払手数料",
+      "standard_account_code": "51620",
+      "standard_account_name": "その他の支払手数料",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 368,
+      "original_account_name": "その他の役務取引等費用",
+      "standard_account_code": "51690",
+      "standard_account_name": "その他の役務取引等費用",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 369,
+      "original_account_name": "その他事業費用",
+      "standard_account_code": "51700",
+      "standard_account_name": "その他事業費用",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 370,
+      "original_account_name": "国債等債券売却損",
+      "standard_account_code": "51710",
+      "standard_account_name": "国債等債券売却損",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 371,
+      "original_account_name": "国債等債券償還損",
+      "standard_account_code": "51720",
+      "standard_account_name": "国債等債券償還損",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 372,
+      "original_account_name": "国債等債券償却",
+      "standard_account_code": "51730",
+      "standard_account_name": "国債等債券償却",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 373,
+      "original_account_name": "経費",
+      "standard_account_code": "52000",
+      "standard_account_name": "経費",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 374,
+      "original_account_name": "人件費",
+      "standard_account_code": "52100",
+      "standard_account_name": "人件費",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 375,
+      "original_account_name": "物件費",
+      "standard_account_code": "52200",
+      "standard_account_name": "物件費",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 376,
+      "original_account_name": "税金",
+      "standard_account_code": "52300",
+      "standard_account_name": "税金",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "完全一致: 名称が標準勘定科目と一致しました"
+    },
+    {
+      "id": 377,
+      "original_account_name": "(うち当期剰余金)",
+      "standard_account_code": "33000",
+      "standard_account_name": "利益剰余金",
+      "confidence": 1.0,
+      "financial_statement": "bs",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 378,
+      "original_account_name": "当期首繰越剰余金",
+      "standard_account_code": "91000",
+      "standard_account_name": "当期首繰越剰余金",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "直接マッピング(当期首繰越剰余金 → 91000)"
+    },
+    {
+      "id": 379,
+      "original_account_name": "(うち受取特別配当金)",
+      "standard_account_code": "41630",
+      "standard_account_name": "受取出資配当金",
+      "confidence": 0.71,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングに類似(受取出資配当金, 類似度: 0.71)"
+    },
+    {
+      "id": 380,
+      "original_account_name": "(うち買入金銭債権利息)",
+      "standard_account_code": "41200",
+      "standard_account_name": "預け金利息",
+      "confidence": 0.5,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングに類似(預金利息, 類似度: 0.50)"
+    },
+    {
+      "id": 381,
+      "original_account_name": "(うち支払奨励金)",
+      "standard_account_code": "51740",
+      "standard_account_name": "支払助成金",
+      "confidence": 0.6,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングに類似(支払助成金, 類似度: 0.60)"
+    },
+    {
+      "id": 382,
+      "original_account_name": "その他経常費用",
+      "standard_account_code": "53000",
+      "standard_account_name": "その他経常費用",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 383,
+      "original_account_name": "金銭の信託運用損",
+      "standard_account_code": "53300",
+      "standard_account_name": "金銭の信託運用損",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 384,
+      "original_account_name": "その他の経常費用",
+      "standard_account_code": "53900",
+      "standard_account_name": "その他の経常費用",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 385,
+      "original_account_name": "経常利益",
+      "standard_account_code": "60000",
+      "standard_account_name": "経常利益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 386,
+      "original_account_name": "特別利益",
+      "standard_account_code": "71000",
+      "standard_account_name": "特別利益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 387,
+      "original_account_name": "その他の特別利益",
+      "standard_account_code": "71000",
+      "standard_account_name": "特別利益",
+      "confidence": 0.67,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングに類似(特別利益, 類似度: 0.67)"
+    },
+    {
+      "id": 388,
+      "original_account_name": "特別損失",
+      "standard_account_code": "72000",
+      "standard_account_name": "特別損失",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 389,
+      "original_account_name": "固定資産処分損",
+      "standard_account_code": "72100",
+      "standard_account_name": "固定資産処分損",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 390,
+      "original_account_name": "税引前当期利益",
+      "standard_account_code": "80000",
+      "standard_account_name": "税引前当期利益",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 391,
+      "original_account_name": "法人税、住民税及び事業税",
+      "standard_account_code": "81000",
+      "standard_account_name": "法人税、住民税及び事業税",
+      "confidence": 0.92,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングに類似(法人税・住民税及び事業税, 類似度: 0.92)"
+    },
+    {
+      "id": 392,
+      "original_account_name": "法人税等調整額",
+      "standard_account_code": "82000",
+      "standard_account_name": "法人税等調整額",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 393,
+      "original_account_name": "法人税等合計",
+      "standard_account_code": "83000",
+      "standard_account_name": "法人税等合計",
+      "confidence": 1.0,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 394,
+      "original_account_name": "当期剰余金",
+      "standard_account_code": "91000",
+      "standard_account_name": "当期首繰越剰余金",
+      "confidence": 0.77,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングに類似(当期首繰越剰余金, 類似度: 0.77)"
+    },
+    {
+      "id": 395,
+      "original_account_name": "当期未処分剰余金",
+      "standard_account_code": "91000",
+      "standard_account_name": "当期首繰越剰余金",
+      "confidence": 0.62,
+      "financial_statement": "pl",
+      "rationale": "他JAの既存マッピングに類似(当期首繰越剰余金, 類似度: 0.62)"
+    },
+    {
+      "id": 396,
+      "original_account_name": "資金調達費用",
+      "standard_account_code": "119600",
+      "standard_account_name": "共済資金調達費用",
+      "confidence": 0.75,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 0.75)"
+    },
+    {
+      "id": 397,
+      "original_account_name": "有価証券関係損益(△は益)",
+      "standard_account_code": "110200",
+      "standard_account_name": "有価証券関係損益",
+      "confidence": 0.7,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 0.7)"
+    },
+    {
+      "id": 398,
+      "original_account_name": "貸出金の純増(△)減",
+      "standard_account_code": "110600",
+      "standard_account_name": "貯金の純増減",
+      "confidence": 0.54,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(貯金の純増減, 類似度: 0.77)"
+    },
+    {
+      "id": 399,
+      "original_account_name": "預け金の純増(△)減",
+      "standard_account_code": "110600",
+      "standard_account_name": "貯金の純増減",
+      "confidence": 0.54,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(貯金の純増減, 類似度: 0.77)"
+    },
+    {
+      "id": 400,
+      "original_account_name": "貯金の純増減(△)",
+      "standard_account_code": "110600",
+      "standard_account_name": "貯金の純増減",
+      "confidence": 0.7,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 0.7)"
+    },
+    {
+      "id": 401,
+      "original_account_name": "借用金の純増減(△)",
+      "standard_account_code": "110600",
+      "standard_account_name": "貯金の純増減",
+      "confidence": 0.54,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(貯金の純増減, 類似度: 0.77)"
+    },
+    {
+      "id": 402,
+      "original_account_name": "利息及び配当金の受取額(資金運用による収入)",
+      "standard_account_code": "337000",
+      "standard_account_name": "出資配当金の支払額",
+      "confidence": 0.5,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(出資配当金の支払額, 類似度: 0.50)"
+    },
+    {
+      "id": 403,
+      "original_account_name": "利息の支払額(資金調達による支出)",
+      "standard_account_code": "111900",
+      "standard_account_name": "法人税等の支払額",
+      "confidence": 0.57,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(法人税等の支払額, 類似度: 0.57)"
+    },
+    {
+      "id": 404,
+      "original_account_name": "事業分量配当金の支払額",
+      "standard_account_code": "337000",
+      "standard_account_name": "出資配当金の支払額",
+      "confidence": 0.7,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(出資配当金の支払額, 類似度: 0.70)"
+    },
+    {
+      "id": 405,
+      "original_account_name": "法人税等の支払額",
+      "standard_account_code": "111900",
+      "standard_account_name": "法人税等の支払額",
+      "confidence": 1.0,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 406,
+      "original_account_name": "事業活動によるキャッシュ・フロー",
+      "standard_account_code": "220000",
+      "standard_account_name": "投資活動によるキャッシュ・フロー",
+      "confidence": 0.88,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(投資活動によるキャッシュ・フロー, 類似度: 0.88)"
+    },
+    {
+      "id": 407,
+      "original_account_name": "2 投資活動によるキャッシュ・フロー",
+      "standard_account_code": "220000",
+      "standard_account_name": "投資活動によるキャッシュ・フロー",
+      "confidence": 0.94,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(投資活動によるキャッシュ・フロー, 類似度: 0.94)"
+    },
+    {
+      "id": 408,
+      "original_account_name": "有価証券の取得による支出",
+      "standard_account_code": "221000",
+      "standard_account_name": "有価証券の取得による支出",
+      "confidence": 1.0,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 409,
+      "original_account_name": "有価証券の売却による収入",
+      "standard_account_code": "222000",
+      "standard_account_name": "有価証券の売却による収入",
+      "confidence": 1.0,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 410,
+      "original_account_name": "有価証券の償還による収入",
+      "standard_account_code": "223000",
+      "standard_account_name": "有価証券の償還による収入",
+      "confidence": 1.0,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 411,
+      "original_account_name": "固定資産の取得による支出",
+      "standard_account_code": "224000",
+      "standard_account_name": "固定資産の取得による支出",
+      "confidence": 1.0,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 412,
+      "original_account_name": "固定資産の処分による収入",
+      "standard_account_code": "225000",
+      "standard_account_name": "固定資産の売却による収入",
+      "confidence": 0.83,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(固定資産の売却による収入, 類似度: 0.83)"
+    },
+    {
+      "id": 413,
+      "original_account_name": "投資活動によるキャッシュ・フロー",
+      "standard_account_code": "220000",
+      "standard_account_name": "投資活動によるキャッシュ・フロー",
+      "confidence": 1.0,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 414,
+      "original_account_name": "3 財務活動によるキャッシュ・フロー",
+      "standard_account_code": "330000",
+      "standard_account_name": "財務活動によるキャッシュ・フロー",
+      "confidence": 0.94,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(財務活動によるキャッシュ・フロー, 類似度: 0.94)"
+    },
+    {
+      "id": 415,
+      "original_account_name": "出資の増額による収入",
+      "standard_account_code": "225000",
+      "standard_account_name": "固定資産の売却による収入",
+      "confidence": 0.64,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(固定資産の売却による収入, 類似度: 0.64)"
+    },
+    {
+      "id": 416,
+      "original_account_name": "出資配当金の支払額",
+      "standard_account_code": "337000",
+      "standard_account_name": "出資配当金の支払額",
+      "confidence": 1.0,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 417,
+      "original_account_name": "財務活動によるキャッシュ・フロー",
+      "standard_account_code": "330000",
+      "standard_account_name": "財務活動によるキャッシュ・フロー",
+      "confidence": 1.0,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 418,
+      "original_account_name": "5 現金及び現金同等物の増加額(又は減少額)",
+      "standard_account_code": "444300",
+      "standard_account_name": "現金同等物",
+      "confidence": 0.65,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(現金及び現金同等物の増加額, 類似度: 0.93)"
+    },
+    {
+      "id": 419,
+      "original_account_name": "6 現金及び現金同等物の期首残高",
+      "standard_account_code": "443000",
+      "standard_account_name": "現金及び現金同等物の期末残高",
+      "confidence": 0.87,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(現金及び現金同等物の期末残高, 類似度: 0.87)"
+    },
+    {
+      "id": 420,
+      "original_account_name": "7 現金及び現金同等物の期末残高",
+      "standard_account_code": "443000",
+      "standard_account_name": "現金及び現金同等物の期末残高",
+      "confidence": 0.93,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(現金及び現金同等物の期末残高, 類似度: 0.93)"
+    },
+    {
+      "id": 421,
+      "original_account_name": "1 事業活動によるキャッシュ・フロー",
+      "standard_account_code": "220000",
+      "standard_account_name": "投資活動によるキャッシュ・フロー",
+      "confidence": 0.82,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングに類似(投資活動によるキャッシュ・フロー, 類似度: 0.82)"
+    },
+    {
+      "id": 422,
+      "original_account_name": "減価償却費",
+      "standard_account_code": "112000",
+      "standard_account_name": "減価償却費",
+      "confidence": 1.0,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 1.0)"
+    },
+    {
+      "id": 423,
+      "original_account_name": "資金運用収益",
+      "standard_account_code": "119500",
+      "standard_account_name": "共済資金運用収益",
+      "confidence": 0.75,
+      "financial_statement": "cf",
+      "rationale": "他JAの既存マッピングを参照(信頼度: 0.75)"
+    }
+  ],
+  "csv_data": [
+    {
+      "id": 367,
+      "account_name": "SDGs 取組積立金",
+      "current_value": 5854.0,
+      "previous_value": 4798.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 86,
+      "category": "資産の部"
+    },
+    {
+      "id": 298,
+      "account_name": "0",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "bs",
+      "is_mapped": false,
+      "row_number": 17,
+      "category": "資産の部"
+    },
+    {
+      "id": 304,
+      "account_name": "金融派生商品",
+      "current_value": 1.0,
+      "previous_value": 2.0,
+      "file_type": "bs",
+      "is_mapped": false,
+      "row_number": 23,
+      "category": "資産の部"
+    },
+    {
+      "id": 426,
+      "account_name": "特別損失",
+      "current_value": 6.0,
+      "previous_value": 0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 49,
+      "category": null
+    },
+    {
+      "id": 341,
+      "account_name": "金融派生商品",
+      "current_value": 1.0,
+      "previous_value": 2.0,
+      "file_type": "bs",
+      "is_mapped": false,
+      "row_number": 60,
+      "category": "負債の部"
+    },
+    {
+      "id": 342,
+      "account_name": "0",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "bs",
+      "is_mapped": false,
+      "row_number": 61,
+      "category": "負債の部"
+    },
+    {
+      "id": 282,
+      "account_name": "現金",
+      "current_value": 3732.0,
+      "previous_value": 3417.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 1,
+      "category": "資産の部"
+    },
+    {
+      "id": 288,
+      "account_name": "有価証券",
+      "current_value": 1718620.0,
+      "previous_value": 1739072.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 7,
+      "category": "資産の部"
+    },
+    {
+      "id": 289,
+      "account_name": "国債",
+      "current_value": 576271.0,
+      "previous_value": 641158.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 8,
+      "category": "資産の部"
+    },
+    {
+      "id": 290,
+      "account_name": "地方債",
+      "current_value": 19190.0,
+      "previous_value": 38119.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 9,
+      "category": "資産の部"
+    },
+    {
+      "id": 291,
+      "account_name": "社債",
+      "current_value": 657087.0,
+      "previous_value": 651933.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 10,
+      "category": "資産の部"
+    },
+    {
+      "id": 293,
+      "account_name": "株式",
+      "current_value": 49113.0,
+      "previous_value": 36250.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 12,
+      "category": "資産の部"
+    },
+    {
+      "id": 295,
+      "account_name": "貸出金",
+      "current_value": 601543.0,
+      "previous_value": 620827.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 14,
+      "category": "資産の部"
+    },
+    {
+      "id": 305,
+      "account_name": "仮払金",
+      "current_value": 114.0,
+      "previous_value": 103.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 24,
+      "category": "資産の部"
+    },
+    {
+      "id": 307,
+      "account_name": "未収収益",
+      "current_value": 6065.0,
+      "previous_value": 5617.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 26,
+      "category": "資産の部"
+    },
+    {
+      "id": 308,
+      "account_name": "前払費用",
+      "current_value": 40.0,
+      "previous_value": 44.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 27,
+      "category": "資産の部"
+    },
+    {
+      "id": 310,
+      "account_name": "有形固定資産",
+      "current_value": 4491.0,
+      "previous_value": 4667.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 29,
+      "category": "資産の部"
+    },
+    {
+      "id": 311,
+      "account_name": "建物",
+      "current_value": 3461.0,
+      "previous_value": 3627.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 30,
+      "category": "資産の部"
+    },
+    {
+      "id": 312,
+      "account_name": "土地",
+      "current_value": 977.0,
+      "previous_value": 977.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 31,
+      "category": "資産の部"
+    },
+    {
+      "id": 314,
+      "account_name": "無形固定資産",
+      "current_value": 215.0,
+      "previous_value": 204.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 33,
+      "category": "資産の部"
+    },
+    {
+      "id": 315,
+      "account_name": "借地権",
+      "current_value": 63.0,
+      "previous_value": 63.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 34,
+      "category": "資産の部"
+    },
+    {
+      "id": 316,
+      "account_name": "ソフトウェア",
+      "current_value": 142.0,
+      "previous_value": 131.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 35,
+      "category": "資産の部"
+    },
+    {
+      "id": 318,
+      "account_name": "外部出資",
+      "current_value": 222011.0,
+      "previous_value": 222221.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 37,
+      "category": "資産の部"
+    },
+    {
+      "id": 326,
+      "account_name": "貯金",
+      "current_value": 4371532.0,
+      "previous_value": 4471356.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 45,
+      "category": "負債の部"
+    },
+    {
+      "id": 327,
+      "account_name": "当座貯金",
+      "current_value": 43212.0,
+      "previous_value": 34936.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 46,
+      "category": "負債の部"
+    },
+    {
+      "id": 328,
+      "account_name": "普通貯金",
+      "current_value": 10250.0,
+      "previous_value": 8480.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 47,
+      "category": "負債の部"
+    },
+    {
+      "id": 330,
+      "account_name": "通知貯金",
+      "current_value": 124400.0,
+      "previous_value": 95930.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 49,
+      "category": "負債の部"
+    },
+    {
+      "id": 332,
+      "account_name": "定期貯金",
+      "current_value": 4192535.0,
+      "previous_value": 4330969.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 51,
+      "category": "負債の部"
+    },
+    {
+      "id": 343,
+      "account_name": "仮受金",
+      "current_value": 216.0,
+      "previous_value": 4.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 62,
+      "category": "負債の部"
+    },
+    {
+      "id": 344,
+      "account_name": "資産除去債務",
+      "current_value": 16.0,
+      "previous_value": 16.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 63,
+      "category": "負債の部"
+    },
+    {
+      "id": 346,
+      "account_name": "未払費用",
+      "current_value": 2296.0,
+      "previous_value": 2336.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 65,
+      "category": "負債の部"
+    },
+    {
+      "id": 347,
+      "account_name": "前受収益",
+      "current_value": 7.0,
+      "previous_value": 7.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 66,
+      "category": "負債の部"
+    },
+    {
+      "id": 301,
+      "account_name": "その他資産",
+      "current_value": 9114.0,
+      "previous_value": 8700.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 20,
+      "category": "資産の部"
+    },
+    {
+      "id": 306,
+      "account_name": "その他の資産",
+      "current_value": 2750.0,
+      "previous_value": 2625.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 25,
+      "category": "資産の部"
+    },
+    {
+      "id": 313,
+      "account_name": "その他の有形固定資産",
+      "current_value": 51.0,
+      "previous_value": 61.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 32,
+      "category": "資産の部"
+    },
+    {
+      "id": 317,
+      "account_name": "その他の無形固定資産",
+      "current_value": 9.0,
+      "previous_value": 10.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 36,
+      "category": "資産の部"
+    },
+    {
+      "id": 319,
+      "account_name": "系統出資",
+      "current_value": 219244.0,
+      "previous_value": 219456.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 38,
+      "category": "資産の部"
+    },
+    {
+      "id": 320,
+      "account_name": "系統外出資",
+      "current_value": 2101.0,
+      "previous_value": 2099.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 39,
+      "category": "資産の部"
+    },
+    {
+      "id": 323,
+      "account_name": "貸倒引当金",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 42,
+      "category": "資産の部"
+    },
+    {
+      "id": 324,
+      "account_name": "資産の部合計",
+      "current_value": 5467406.0,
+      "previous_value": 5495055.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 43,
+      "category": "資産の部"
+    },
+    {
+      "id": 325,
+      "account_name": "負債及び純資産の部",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 44,
+      "category": "負債の部"
+    },
+    {
+      "id": 331,
+      "account_name": "別段貯金",
+      "current_value": 1133.0,
+      "previous_value": 1041.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 50,
+      "category": "負債の部"
+    },
+    {
+      "id": 333,
+      "account_name": "譲渡性貯金",
+      "current_value": 0,
+      "previous_value": 5000.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 52,
+      "category": "負債の部"
+    },
+    {
+      "id": 337,
+      "account_name": "その他負債",
+      "current_value": 3701.0,
+      "previous_value": 3532.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 56,
+      "category": "負債の部"
+    },
+    {
+      "id": 340,
+      "account_name": "貯金利子諸税その他",
+      "current_value": 23.0,
+      "previous_value": 23.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 59,
+      "category": "負債の部"
+    },
+    {
+      "id": 345,
+      "account_name": "その他の負債",
+      "current_value": 15.0,
+      "previous_value": 7.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 64,
+      "category": "負債の部"
+    },
+    {
+      "id": 349,
+      "account_name": "諸引当金",
+      "current_value": 20199.0,
+      "previous_value": 20222.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 68,
+      "category": "負債の部"
+    },
+    {
+      "id": 283,
+      "account_name": "預け金",
+      "current_value": 2652222.0,
+      "previous_value": 2643230.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 2,
+      "category": "資産の部"
+    },
+    {
+      "id": 377,
+      "account_name": "経常収益",
+      "current_value": 58431.0,
+      "previous_value": 54965.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 0,
+      "category": "収益の部"
+    },
+    {
+      "id": 378,
+      "account_name": "資金運用収益",
+      "current_value": 39381.0,
+      "previous_value": 37243.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 1,
+      "category": "収益の部"
+    },
+    {
+      "id": 379,
+      "account_name": "貸出金利息",
+      "current_value": 5152.0,
+      "previous_value": 4421.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 2,
+      "category": null
+    },
+    {
+      "id": 380,
+      "account_name": "預け金利息",
+      "current_value": 50.0,
+      "previous_value": 54.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 3,
+      "category": null
+    },
+    {
+      "id": 381,
+      "account_name": "有価証券利息配当金",
+      "current_value": 21306.0,
+      "previous_value": 18464.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 4,
+      "category": null
+    },
+    {
+      "id": 382,
+      "account_name": "その他受入利息",
+      "current_value": 12871.0,
+      "previous_value": 14302.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 5,
+      "category": null
+    },
+    {
+      "id": 371,
+      "account_name": "処分未済持分",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "bs",
+      "is_mapped": false,
+      "row_number": 90,
+      "category": "資産の部"
+    },
+    {
+      "id": 386,
+      "account_name": "役務取引等収益",
+      "current_value": 383.0,
+      "previous_value": 324.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 9,
+      "category": "収益の部"
+    },
+    {
+      "id": 387,
+      "account_name": "受入為替手数料",
+      "current_value": 34.0,
+      "previous_value": 31.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 10,
+      "category": null
+    },
+    {
+      "id": 383,
+      "account_name": "(うち受取奨励金)",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "pl",
+      "is_mapped": false,
+      "row_number": 6,
+      "category": null
+    },
+    {
+      "id": 352,
+      "account_name": "退職給付引当金",
+      "current_value": 22.0,
+      "previous_value": 25.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 71,
+      "category": "負債の部"
+    },
+    {
+      "id": 353,
+      "account_name": "役員退職慰労引当金",
+      "current_value": 65.0,
+      "previous_value": 62.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 72,
+      "category": "負債の部"
+    },
+    {
+      "id": 355,
+      "account_name": "繰延税金負債",
+      "current_value": 21272.0,
+      "previous_value": 5064.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 74,
+      "category": "負債の部"
+    },
+    {
+      "id": 358,
+      "account_name": "出資金",
+      "current_value": 300478.0,
+      "previous_value": 298878.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 77,
+      "category": "資産の部"
+    },
+    {
+      "id": 361,
+      "account_name": "利益剰余金",
+      "current_value": 201780.0,
+      "previous_value": 198225.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 80,
+      "category": "資産の部"
+    },
+    {
+      "id": 373,
+      "account_name": "その他有価証券評価差額金",
+      "current_value": 57154.0,
+      "previous_value": 15408.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 92,
+      "category": "資産の部"
+    },
+    {
+      "id": 354,
+      "account_name": "特例業務負担金引当金",
+      "current_value": 150.0,
+      "previous_value": 171.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 73,
+      "category": "負債の部"
+    },
+    {
+      "id": 357,
+      "account_name": "負債の部合計",
+      "current_value": 4907991.0,
+      "previous_value": 4982541.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 76,
+      "category": "負債の部"
+    },
+    {
+      "id": 359,
+      "account_name": "(うち後配出資金)",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 78,
+      "category": "資産の部"
+    },
+    {
+      "id": 363,
+      "account_name": "その他利益剰余金",
+      "current_value": 115680.0,
+      "previous_value": 113425.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 82,
+      "category": "資産の部"
+    },
+    {
+      "id": 366,
+      "account_name": "固定資産圧縮積立金",
+      "current_value": 138.0,
+      "previous_value": 138.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 85,
+      "category": "資産の部"
+    },
+    {
+      "id": 369,
+      "account_name": "当期未処分剰余金",
+      "current_value": 28787.0,
+      "previous_value": 27988.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 88,
+      "category": "資産の部"
+    },
+    {
+      "id": 375,
+      "account_name": "純資産の部合計",
+      "current_value": 559414.0,
+      "previous_value": 512513.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 94,
+      "category": "資産の部"
+    },
+    {
+      "id": 376,
+      "account_name": "負債及び純資産の部合計",
+      "current_value": 5467406.0,
+      "previous_value": 5495055.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 95,
+      "category": "資産の部"
+    },
+    {
+      "id": 350,
+      "account_name": "相互援助積立金",
+      "current_value": 19805.0,
+      "previous_value": 19805.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 69,
+      "category": "負債の部"
+    },
+    {
+      "id": 356,
+      "account_name": "債務保証",
+      "current_value": 308.0,
+      "previous_value": 279.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 75,
+      "category": "負債の部"
+    },
+    {
+      "id": 388,
+      "account_name": "その他の受入手数料",
+      "current_value": 130.0,
+      "previous_value": 131.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 11,
+      "category": null
+    },
+    {
+      "id": 389,
+      "account_name": "その他の役務取引等収益",
+      "current_value": 218.0,
+      "previous_value": 162.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 12,
+      "category": "収益の部"
+    },
+    {
+      "id": 390,
+      "account_name": "その他事業収益",
+      "current_value": 7527.0,
+      "previous_value": 7462.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 13,
+      "category": "収益の部"
+    },
+    {
+      "id": 391,
+      "account_name": "国債等債券売却益",
+      "current_value": 4486.0,
+      "previous_value": 4421.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 14,
+      "category": null
+    },
+    {
+      "id": 392,
+      "account_name": "金融派生商品収益",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 15,
+      "category": "収益の部"
+    },
+    {
+      "id": 393,
+      "account_name": "受取出資配当金",
+      "current_value": 3040.0,
+      "previous_value": 3040.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 16,
+      "category": null
+    },
+    {
+      "id": 394,
+      "account_name": "その他の事業収益",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 17,
+      "category": "収益の部"
+    },
+    {
+      "id": 395,
+      "account_name": "その他経常収益",
+      "current_value": 11140.0,
+      "previous_value": 9935.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 18,
+      "category": "収益の部"
+    },
+    {
+      "id": 396,
+      "account_name": "貸倒引当金戻入益",
+      "current_value": 598.0,
+      "previous_value": 383.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 19,
+      "category": null
+    },
+    {
+      "id": 397,
+      "account_name": "償却債権取立益",
+      "current_value": 2119.0,
+      "previous_value": 14.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 20,
+      "category": null
+    },
+    {
+      "id": 398,
+      "account_name": "株式等売却益",
+      "current_value": 0,
+      "previous_value": 1573.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 21,
+      "category": null
+    },
+    {
+      "id": 399,
+      "account_name": "金銭の信託運用益",
+      "current_value": 8109.0,
+      "previous_value": 7620.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 22,
+      "category": null
+    },
+    {
+      "id": 400,
+      "account_name": "その他の経常収益",
+      "current_value": 312.0,
+      "previous_value": 344.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 23,
+      "category": "収益の部"
+    },
+    {
+      "id": 401,
+      "account_name": "経常費用",
+      "current_value": 50922.0,
+      "previous_value": 47803.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 24,
+      "category": "費用の部"
+    },
+    {
+      "id": 402,
+      "account_name": "資金調達費用",
+      "current_value": 25511.0,
+      "previous_value": 25797.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 25,
+      "category": "費用の部"
+    },
+    {
+      "id": 403,
+      "account_name": "貯金利息",
+      "current_value": 156.0,
+      "previous_value": 158.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 26,
+      "category": null
+    },
+    {
+      "id": 404,
+      "account_name": "譲渡性貯金利息",
+      "current_value": 1.0,
+      "previous_value": 0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 27,
+      "category": null
+    },
+    {
+      "id": 405,
+      "account_name": "債券貸借取引支払利息",
+      "current_value": 35.0,
+      "previous_value": 32.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 28,
+      "category": null
+    },
+    {
+      "id": 406,
+      "account_name": "その他支払利息",
+      "current_value": 25318.0,
+      "previous_value": 25604.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 29,
+      "category": null
+    },
+    {
+      "id": 408,
+      "account_name": "役務取引等費用",
+      "current_value": 894.0,
+      "previous_value": 813.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 31,
+      "category": "費用の部"
+    },
+    {
+      "id": 409,
+      "account_name": "支払為替手数料",
+      "current_value": 4.0,
+      "previous_value": 4.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 32,
+      "category": null
+    },
+    {
+      "id": 410,
+      "account_name": "その他の支払手数料",
+      "current_value": 826.0,
+      "previous_value": 746.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 33,
+      "category": null
+    },
+    {
+      "id": 411,
+      "account_name": "その他の役務取引等費用",
+      "current_value": 63.0,
+      "previous_value": 62.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 34,
+      "category": "費用の部"
+    },
+    {
+      "id": 412,
+      "account_name": "その他事業費用",
+      "current_value": 19328.0,
+      "previous_value": 16496.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 35,
+      "category": "費用の部"
+    },
+    {
+      "id": 413,
+      "account_name": "国債等債券売却損",
+      "current_value": 18540.0,
+      "previous_value": 8369.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 36,
+      "category": null
+    },
+    {
+      "id": 414,
+      "account_name": "国債等債券償還損",
+      "current_value": 0,
+      "previous_value": 8126.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 37,
+      "category": null
+    },
+    {
+      "id": 415,
+      "account_name": "国債等債券償却",
+      "current_value": 788.0,
+      "previous_value": 0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 38,
+      "category": null
+    },
+    {
+      "id": 416,
+      "account_name": "経費",
+      "current_value": 3883.0,
+      "previous_value": 3782.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 39,
+      "category": null
+    },
+    {
+      "id": 370,
+      "account_name": "(うち当期剰余金)",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 89,
+      "category": "資産の部"
+    },
+    {
+      "id": 384,
+      "account_name": "(うち受取特別配当金)",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 7,
+      "category": null
+    },
+    {
+      "id": 385,
+      "account_name": "(うち買入金銭債権利息)",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 8,
+      "category": null
+    },
+    {
+      "id": 407,
+      "account_name": "(うち支払奨励金)",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 30,
+      "category": null
+    },
+    {
+      "id": 429,
+      "account_name": "0",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "pl",
+      "is_mapped": false,
+      "row_number": 52,
+      "category": null
+    },
+    {
+      "id": 435,
+      "account_name": "SDGs 取組積立金取崩額",
+      "current_value": 244.0,
+      "previous_value": 202.0,
+      "file_type": "pl",
+      "is_mapped": false,
+      "row_number": 58,
+      "category": null
+    },
+    {
+      "id": 417,
+      "account_name": "人件費",
+      "current_value": 1909.0,
+      "previous_value": 1902.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 40,
+      "category": null
+    },
+    {
+      "id": 418,
+      "account_name": "物件費",
+      "current_value": 1770.0,
+      "previous_value": 1679.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 41,
+      "category": null
+    },
+    {
+      "id": 419,
+      "account_name": "税金",
+      "current_value": 204.0,
+      "previous_value": 200.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 42,
+      "category": null
+    },
+    {
+      "id": 434,
+      "account_name": "当期首繰越剰余金",
+      "current_value": 21427.0,
+      "previous_value": 21558.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 57,
+      "category": null
+    },
+    {
+      "id": 420,
+      "account_name": "その他経常費用",
+      "current_value": 1304.0,
+      "previous_value": 913.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 43,
+      "category": "費用の部"
+    },
+    {
+      "id": 421,
+      "account_name": "金銭の信託運用損",
+      "current_value": 1264.0,
+      "previous_value": 785.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 44,
+      "category": null
+    },
+    {
+      "id": 422,
+      "account_name": "その他の経常費用",
+      "current_value": 39.0,
+      "previous_value": 127.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 45,
+      "category": "費用の部"
+    },
+    {
+      "id": 423,
+      "account_name": "経常利益",
+      "current_value": 7509.0,
+      "previous_value": 7162.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 46,
+      "category": null
+    },
+    {
+      "id": 424,
+      "account_name": "特別利益",
+      "current_value": 3.0,
+      "previous_value": 4.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 47,
+      "category": null
+    },
+    {
+      "id": 425,
+      "account_name": "その他の特別利益",
+      "current_value": 3.0,
+      "previous_value": 4.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 48,
+      "category": null
+    },
+    {
+      "id": 536,
+      "account_name": "資金調達費用",
+      "current_value": 25511.0,
+      "previous_value": 25797.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 9,
+      "category": "費用の部"
+    },
+    {
+      "id": 537,
+      "account_name": "有価証券関係損益(△は益)",
+      "current_value": 15327.0,
+      "previous_value": 11219.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 10,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 539,
+      "account_name": "貸出金の純増(△)減",
+      "current_value": 19284.0,
+      "previous_value": 1015.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 12,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 540,
+      "account_name": "預け金の純増(△)減",
+      "current_value": 128009.0,
+      "previous_value": 258596.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 13,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 541,
+      "account_name": "貯金の純増減(△)",
+      "current_value": -104824.0,
+      "previous_value": -115439.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 14,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 542,
+      "account_name": "借用金の純増減(△)",
+      "current_value": -61300.0,
+      "previous_value": -47000.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 15,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 546,
+      "account_name": "利息及び配当金の受取額(資金運用による収入)",
+      "current_value": 45603.0,
+      "previous_value": 43717.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 19,
+      "category": "収益の部"
+    },
+    {
+      "id": 547,
+      "account_name": "利息の支払額(資金調達による支出)",
+      "current_value": -25537.0,
+      "previous_value": -25836.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 20,
+      "category": "費用の部"
+    },
+    {
+      "id": 548,
+      "account_name": "事業分量配当金の支払額",
+      "current_value": -1737.0,
+      "previous_value": -3838.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 21,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 551,
+      "account_name": "法人税等の支払額",
+      "current_value": -619.0,
+      "previous_value": -3420.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 24,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 552,
+      "account_name": "事業活動によるキャッシュ・フロー",
+      "current_value": 96606.0,
+      "previous_value": 106843.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 25,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 554,
+      "account_name": "有価証券の取得による支出",
+      "current_value": -197030.0,
+      "previous_value": -250848.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 27,
+      "category": "費用の部"
+    },
+    {
+      "id": 538,
+      "account_name": "金銭の信託の運用損益(△は運用益)",
+      "current_value": -6845.0,
+      "previous_value": -6834.0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 11,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 543,
+      "account_name": "債券貸借取引受入担保金の純増減(△)",
+      "current_value": -75190.0,
+      "previous_value": -6116.0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 16,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 544,
+      "account_name": "買入金銭債権の純増(△)減",
+      "current_value": 20306.0,
+      "previous_value": 6675.0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 17,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 545,
+      "account_name": "外部出資関係損益(△)",
+      "current_value": 0,
+      "previous_value": 121.0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 18,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 549,
+      "account_name": "その他",
+      "current_value": 576.0,
+      "previous_value": 513.0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 22,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 550,
+      "account_name": "小   計",
+      "current_value": 97226.0,
+      "previous_value": 110264.0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 23,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 557,
+      "account_name": "0",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 30,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 558,
+      "account_name": "金銭の信託の増加による支出",
+      "current_value": -14423.0,
+      "previous_value": -10570.0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 31,
+      "category": "費用の部"
+    },
+    {
+      "id": 559,
+      "account_name": "金銭の信託の減少による収入",
+      "current_value": 31.0,
+      "previous_value": 184.0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 32,
+      "category": "収益の部"
+    },
+    {
+      "id": 567,
+      "account_name": "4 現金及び現金同等物に係る換算差額",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 40,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 571,
+      "account_name": "0",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 44,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 528,
+      "account_name": "税引前当期利益",
+      "current_value": 7506.0,
+      "previous_value": 7165.0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 1,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 530,
+      "account_name": "固定資産除却損(非資金損益部分)",
+      "current_value": 6.0,
+      "previous_value": 0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 3,
+      "category": "資産の部"
+    },
+    {
+      "id": 531,
+      "account_name": "貸倒引当金の増減額(△は減少)",
+      "current_value": -694.0,
+      "previous_value": -2496.0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 4,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 532,
+      "account_name": "賞与引当金の増減額(△は減少)",
+      "current_value": -2.0,
+      "previous_value": 10.0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 5,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 533,
+      "account_name": "退職給付引当金の増減額(△は減少)",
+      "current_value": -3.0,
+      "previous_value": 2.0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 6,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 534,
+      "account_name": "その他の引当金・積立金の増減額(△は減少)",
+      "current_value": -17.0,
+      "previous_value": -20.0,
+      "file_type": "cf",
+      "is_mapped": false,
+      "row_number": 7,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 281,
+      "account_name": "資産の部",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 0,
+      "category": "資産の部"
+    },
+    {
+      "id": 329,
+      "account_name": "貯蓄貯金",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 48,
+      "category": "負債の部"
+    },
+    {
+      "id": 351,
+      "account_name": "賞与引当金",
+      "current_value": 154.0,
+      "previous_value": 157.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 70,
+      "category": "負債の部"
+    },
+    {
+      "id": 374,
+      "account_name": "評価・換算差額等合計",
+      "current_value": 57154.0,
+      "previous_value": 15408.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 93,
+      "category": "資産の部"
+    },
+    {
+      "id": 284,
+      "account_name": "系統預け金",
+      "current_value": 2652209.0,
+      "previous_value": 2643058.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 3,
+      "category": "資産の部"
+    },
+    {
+      "id": 285,
+      "account_name": "系統外預け金",
+      "current_value": 12.0,
+      "previous_value": 171.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 4,
+      "category": "資産の部"
+    },
+    {
+      "id": 286,
+      "account_name": "買入金銭債権",
+      "current_value": 29458.0,
+      "previous_value": 49765.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 5,
+      "category": "資産の部"
+    },
+    {
+      "id": 287,
+      "account_name": "金銭の信託",
+      "current_value": 228187.0,
+      "previous_value": 205862.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 6,
+      "category": "資産の部"
+    },
+    {
+      "id": 292,
+      "account_name": "外国証券",
+      "current_value": 143163.0,
+      "previous_value": 148244.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 11,
+      "category": "資産の部"
+    },
+    {
+      "id": 294,
+      "account_name": "受益証券",
+      "current_value": 273794.0,
+      "previous_value": 223365.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 13,
+      "category": "資産の部"
+    },
+    {
+      "id": 296,
+      "account_name": "手形貸付",
+      "current_value": 0,
+      "previous_value": 165.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 15,
+      "category": "資産の部"
+    },
+    {
+      "id": 297,
+      "account_name": "証書貸付",
+      "current_value": 377346.0,
+      "previous_value": 398354.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 16,
+      "category": "資産の部"
+    },
+    {
+      "id": 299,
+      "account_name": "当座貸越",
+      "current_value": 22393.0,
+      "previous_value": 22460.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 18,
+      "category": "資産の部"
+    },
+    {
+      "id": 300,
+      "account_name": "金融機関貸付",
+      "current_value": 201803.0,
+      "previous_value": 199848.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 19,
+      "category": "資産の部"
+    },
+    {
+      "id": 302,
+      "account_name": "従業員貸付金",
+      "current_value": 79.0,
+      "previous_value": 89.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 21,
+      "category": "資産の部"
+    },
+    {
+      "id": 303,
+      "account_name": "差入保証金",
+      "current_value": 26.0,
+      "previous_value": 26.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 22,
+      "category": "資産の部"
+    },
+    {
+      "id": 309,
+      "account_name": "未決済為替貸",
+      "current_value": 36.0,
+      "previous_value": 189.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 28,
+      "category": "資産の部"
+    },
+    {
+      "id": 321,
+      "account_name": "子会社等出資",
+      "current_value": 665.0,
+      "previous_value": 665.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 40,
+      "category": "資産の部"
+    },
+    {
+      "id": 322,
+      "account_name": "債務保証見返",
+      "current_value": 308.0,
+      "previous_value": 279.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 41,
+      "category": "資産の部"
+    },
+    {
+      "id": 334,
+      "account_name": "債券貸借取引受入担保金",
+      "current_value": 398777.0,
+      "previous_value": 323586.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 53,
+      "category": "負債の部"
+    },
+    {
+      "id": 335,
+      "account_name": "借用金",
+      "current_value": 92200.0,
+      "previous_value": 153500.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 54,
+      "category": "負債の部"
+    },
+    {
+      "id": 336,
+      "account_name": "代理業務勘定",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 55,
+      "category": "負債の部"
+    },
+    {
+      "id": 338,
+      "account_name": "貸付留保金",
+      "current_value": 1004.0,
+      "previous_value": 835.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 57,
+      "category": "負債の部"
+    },
+    {
+      "id": 339,
+      "account_name": "未払法人税等",
+      "current_value": 119.0,
+      "previous_value": 298.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 58,
+      "category": "負債の部"
+    },
+    {
+      "id": 348,
+      "account_name": "未決済為替借",
+      "current_value": 0,
+      "previous_value": 1.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 67,
+      "category": "負債の部"
+    },
+    {
+      "id": 360,
+      "account_name": "再評価積立金",
+      "current_value": 1.0,
+      "previous_value": 1.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 79,
+      "category": "資産の部"
+    },
+    {
+      "id": 362,
+      "account_name": "利益準備金",
+      "current_value": 86100.0,
+      "previous_value": 84800.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 81,
+      "category": "資産の部"
+    },
+    {
+      "id": 364,
+      "account_name": "経営基盤安定化積立金",
+      "current_value": 32500.0,
+      "previous_value": 32500.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 83,
+      "category": "資産の部"
+    },
+    {
+      "id": 365,
+      "account_name": "施設整備積立金",
+      "current_value": 2800.0,
+      "previous_value": 2400.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 84,
+      "category": "資産の部"
+    },
+    {
+      "id": 368,
+      "account_name": "特別積立金",
+      "current_value": 45600.0,
+      "previous_value": 45600.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 87,
+      "category": "資産の部"
+    },
+    {
+      "id": 372,
+      "account_name": "会員資本合計",
+      "current_value": 502260.0,
+      "previous_value": 497104.0,
+      "file_type": "bs",
+      "is_mapped": true,
+      "row_number": 91,
+      "category": "資産の部"
+    },
+    {
+      "id": 427,
+      "account_name": "固定資産処分損",
+      "current_value": 6.0,
+      "previous_value": 0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 50,
+      "category": "資産の部"
+    },
+    {
+      "id": 428,
+      "account_name": "税引前当期利益",
+      "current_value": 7506.0,
+      "previous_value": 7165.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 51,
+      "category": null
+    },
+    {
+      "id": 430,
+      "account_name": "法人税、住民税及び事業税",
+      "current_value": 303.0,
+      "previous_value": 810.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 53,
+      "category": null
+    },
+    {
+      "id": 431,
+      "account_name": "法人税等調整額",
+      "current_value": 86.0,
+      "previous_value": 127.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 54,
+      "category": null
+    },
+    {
+      "id": 432,
+      "account_name": "法人税等合計",
+      "current_value": 390.0,
+      "previous_value": 938.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 55,
+      "category": null
+    },
+    {
+      "id": 433,
+      "account_name": "当期剰余金",
+      "current_value": 7116.0,
+      "previous_value": 6227.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 56,
+      "category": null
+    },
+    {
+      "id": 436,
+      "account_name": "当期未処分剰余金",
+      "current_value": 28787.0,
+      "previous_value": 27988.0,
+      "file_type": "pl",
+      "is_mapped": true,
+      "row_number": 59,
+      "category": null
+    },
+    {
+      "id": 553,
+      "account_name": "2 投資活動によるキャッシュ・フロー",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 26,
+      "category": "投資活動CF"
+    },
+    {
+      "id": 555,
+      "account_name": "有価証券の売却による収入",
+      "current_value": 227316.0,
+      "previous_value": 163896.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 28,
+      "category": "収益の部"
+    },
+    {
+      "id": 556,
+      "account_name": "有価証券の償還による収入",
+      "current_value": 24915.0,
+      "previous_value": 85930.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 29,
+      "category": "収益の部"
+    },
+    {
+      "id": 560,
+      "account_name": "固定資産の取得による支出",
+      "current_value": -88.0,
+      "previous_value": -79.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 33,
+      "category": "資産の部"
+    },
+    {
+      "id": 561,
+      "account_name": "固定資産の処分による収入",
+      "current_value": 210.0,
+      "previous_value": 0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 34,
+      "category": "資産の部"
+    },
+    {
+      "id": 562,
+      "account_name": "投資活動によるキャッシュ・フロー",
+      "current_value": 40931.0,
+      "previous_value": -11486.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 35,
+      "category": "投資活動CF"
+    },
+    {
+      "id": 563,
+      "account_name": "3 財務活動によるキャッシュ・フロー",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 36,
+      "category": "財務活動CF"
+    },
+    {
+      "id": 564,
+      "account_name": "出資の増額による収入",
+      "current_value": 1600.0,
+      "previous_value": 0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 37,
+      "category": "収益の部"
+    },
+    {
+      "id": 565,
+      "account_name": "出資配当金の支払額",
+      "current_value": -1822.0,
+      "previous_value": -1858.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 38,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 566,
+      "account_name": "財務活動によるキャッシュ・フロー",
+      "current_value": -222.0,
+      "previous_value": -1858.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 39,
+      "category": "財務活動CF"
+    },
+    {
+      "id": 568,
+      "account_name": "5 現金及び現金同等物の増加額(又は減少額)",
+      "current_value": 137315.0,
+      "previous_value": 93498.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 41,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 569,
+      "account_name": "6 現金及び現金同等物の期首残高",
+      "current_value": 118429.0,
+      "previous_value": 24931.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 42,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 570,
+      "account_name": "7 現金及び現金同等物の期末残高",
+      "current_value": 255745.0,
+      "previous_value": 118429.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 43,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 527,
+      "account_name": "1 事業活動によるキャッシュ・フロー",
+      "current_value": 0,
+      "previous_value": 0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 0,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 529,
+      "account_name": "減価償却費",
+      "current_value": 247.0,
+      "previous_value": 253.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 2,
+      "category": "営業活動CF"
+    },
+    {
+      "id": 535,
+      "account_name": "資金運用収益",
+      "current_value": -39381.0,
+      "previous_value": -37243.0,
+      "file_type": "cf",
+      "is_mapped": true,
+      "row_number": 8,
+      "category": "収益の部"
+    }
+  ]
+}

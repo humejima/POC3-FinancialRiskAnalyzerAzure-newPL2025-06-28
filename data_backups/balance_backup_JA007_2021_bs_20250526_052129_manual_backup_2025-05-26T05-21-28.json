@@ -1,0 +1,831 @@
+{
+  "backup_info": {
+    "timestamp": "20250526_052129",
+    "ja_code": "JA007",
+    "year": 2021,
+    "financial_statement": "bs",
+    "description": "manual_backup_2025-05-26T05-21-28",
+    "total_balances": 91
+  },
+  "balances": [
+    {
+      "id": 6828,
+      "standard_account_code": "33200",
+      "standard_account_name": "任意積立金",
+      "current_value": 5854.0,
+      "previous_value": 4798.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6829,
+      "standard_account_code": "11110",
+      "standard_account_name": "現金",
+      "current_value": 3732.0,
+      "previous_value": 3417.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6830,
+      "standard_account_code": "11200",
+      "standard_account_name": "有価証券",
+      "current_value": 1718620.0,
+      "previous_value": 1739072.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6831,
+      "standard_account_code": "11210",
+      "standard_account_name": "国債",
+      "current_value": 576271.0,
+      "previous_value": 641158.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6832,
+      "standard_account_code": "11220",
+      "standard_account_name": "地方債",
+      "current_value": 19190.0,
+      "previous_value": 38119.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6833,
+      "standard_account_code": "11230",
+      "standard_account_name": "社債",
+      "current_value": 657087.0,
+      "previous_value": 651933.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6834,
+      "standard_account_code": "11240",
+      "standard_account_name": "株式",
+      "current_value": 49113.0,
+      "previous_value": 36250.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6835,
+      "standard_account_code": "11300",
+      "standard_account_name": "貸出金",
+      "current_value": 601543.0,
+      "previous_value": 620827.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6836,
+      "standard_account_code": "11740",
+      "standard_account_name": "仮払金",
+      "current_value": 114.0,
+      "previous_value": 103.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6837,
+      "standard_account_code": "11720",
+      "standard_account_name": "未収収益",
+      "current_value": 6065.0,
+      "previous_value": 5617.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6838,
+      "standard_account_code": "11710",
+      "standard_account_name": "前払費用",
+      "current_value": 40.0,
+      "previous_value": 44.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6839,
+      "standard_account_code": "12100",
+      "standard_account_name": "有形固定資産",
+      "current_value": 4491.0,
+      "previous_value": 4667.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6840,
+      "standard_account_code": "12110",
+      "standard_account_name": "建物",
+      "current_value": 3461.0,
+      "previous_value": 3627.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6841,
+      "standard_account_code": "12150",
+      "standard_account_name": "土地",
+      "current_value": 977.0,
+      "previous_value": 977.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6842,
+      "standard_account_code": "12200",
+      "standard_account_name": "無形固定資産",
+      "current_value": 215.0,
+      "previous_value": 204.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6843,
+      "standard_account_code": "12220",
+      "standard_account_name": "借地権",
+      "current_value": 63.0,
+      "previous_value": 63.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6844,
+      "standard_account_code": "12230",
+      "standard_account_name": "ソフトウェア",
+      "current_value": 142.0,
+      "previous_value": 131.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6845,
+      "standard_account_code": "12300",
+      "standard_account_name": "外部出資",
+      "current_value": 222011.0,
+      "previous_value": 222221.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6846,
+      "standard_account_code": "21100",
+      "standard_account_name": "貯金",
+      "current_value": 4371532.0,
+      "previous_value": 4471356.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6847,
+      "standard_account_code": "21110",
+      "standard_account_name": "当座貯金",
+      "current_value": 43212.0,
+      "previous_value": 34936.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6848,
+      "standard_account_code": "21120",
+      "standard_account_name": "普通貯金",
+      "current_value": 10250.0,
+      "previous_value": 8480.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6849,
+      "standard_account_code": "21140",
+      "standard_account_name": "通知貯金",
+      "current_value": 124400.0,
+      "previous_value": 95930.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6850,
+      "standard_account_code": "21150",
+      "standard_account_name": "定期貯金",
+      "current_value": 4192535.0,
+      "previous_value": 4330969.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6851,
+      "standard_account_code": "21530",
+      "standard_account_name": "仮受金",
+      "current_value": 216.0,
+      "previous_value": 4.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6852,
+      "standard_account_code": "22320",
+      "standard_account_name": "資産除去債務",
+      "current_value": 16.0,
+      "previous_value": 16.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6853,
+      "standard_account_code": "21510",
+      "standard_account_name": "未払費用",
+      "current_value": 2296.0,
+      "previous_value": 2336.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6854,
+      "standard_account_code": "21520",
+      "standard_account_name": "前受収益",
+      "current_value": 7.0,
+      "previous_value": 7.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6855,
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "current_value": 9114.0,
+      "previous_value": 8700.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6856,
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "current_value": 2750.0,
+      "previous_value": 2625.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6857,
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "current_value": 51.0,
+      "previous_value": 61.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6858,
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "current_value": 9.0,
+      "previous_value": 10.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6859,
+      "standard_account_code": "12310",
+      "standard_account_name": "系統出資金",
+      "current_value": 219244.0,
+      "previous_value": 219456.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6860,
+      "standard_account_code": "12320",
+      "standard_account_name": "系統外出資金",
+      "current_value": 2101.0,
+      "previous_value": 2099.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6861,
+      "standard_account_code": "22200",
+      "standard_account_name": "引当金",
+      "current_value": 0,
+      "previous_value": 0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6862,
+      "standard_account_code": "10000",
+      "standard_account_name": "資産の部",
+      "current_value": 5467406.0,
+      "previous_value": 5495055.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6863,
+      "standard_account_code": "10000",
+      "standard_account_name": "資産の部",
+      "current_value": 0,
+      "previous_value": 0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6864,
+      "standard_account_code": "21100",
+      "standard_account_name": "貯金",
+      "current_value": 1133.0,
+      "previous_value": 1041.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6865,
+      "standard_account_code": "21180",
+      "standard_account_name": "その他貯金",
+      "current_value": 0,
+      "previous_value": 5000.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6866,
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "current_value": 3701.0,
+      "previous_value": 3532.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6867,
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "current_value": 23.0,
+      "previous_value": 23.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6868,
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "current_value": 15.0,
+      "previous_value": 7.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6869,
+      "standard_account_code": "22200",
+      "standard_account_name": "引当金",
+      "current_value": 20199.0,
+      "previous_value": 20222.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6870,
+      "standard_account_code": "11180",
+      "standard_account_name": "その他預金",
+      "current_value": 2652222.0,
+      "previous_value": 2643230.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6871,
+      "standard_account_code": "22210",
+      "standard_account_name": "退職給付引当金",
+      "current_value": 22.0,
+      "previous_value": 25.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6872,
+      "standard_account_code": "22220",
+      "standard_account_name": "役員退職慰労引当金",
+      "current_value": 65.0,
+      "previous_value": 62.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6873,
+      "standard_account_code": "22310",
+      "standard_account_name": "繰延税金負債",
+      "current_value": 21272.0,
+      "previous_value": 5064.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6874,
+      "standard_account_code": "31000",
+      "standard_account_name": "出資金",
+      "current_value": 300478.0,
+      "previous_value": 298878.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6875,
+      "standard_account_code": "33000",
+      "standard_account_name": "利益剰余金",
+      "current_value": 201780.0,
+      "previous_value": 198225.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6876,
+      "standard_account_code": "34110",
+      "standard_account_name": "その他有価証券評価差額金",
+      "current_value": 57154.0,
+      "previous_value": 15408.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6877,
+      "standard_account_code": "22200",
+      "standard_account_name": "引当金",
+      "current_value": 150.0,
+      "previous_value": 171.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6878,
+      "standard_account_code": "20000",
+      "standard_account_name": "負債の部",
+      "current_value": 4907991.0,
+      "previous_value": 4982541.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6879,
+      "standard_account_code": "31000",
+      "standard_account_name": "出資金",
+      "current_value": 0,
+      "previous_value": 0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6880,
+      "standard_account_code": "11750",
+      "standard_account_name": "その他",
+      "current_value": 115680.0,
+      "previous_value": 113425.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6881,
+      "standard_account_code": "12000",
+      "standard_account_name": "固定資産",
+      "current_value": 138.0,
+      "previous_value": 138.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6882,
+      "standard_account_code": "33300",
+      "standard_account_name": "当期未処分剰余金(未処理損失金)",
+      "current_value": 28787.0,
+      "previous_value": 27988.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6883,
+      "standard_account_code": "30000",
+      "standard_account_name": "純資産の部",
+      "current_value": 559414.0,
+      "previous_value": 512513.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6884,
+      "standard_account_code": "10000",
+      "standard_account_name": "資産の部",
+      "current_value": 5467406.0,
+      "previous_value": 5495055.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6885,
+      "standard_account_code": "33240",
+      "standard_account_name": "その他任意積立金",
+      "current_value": 19805.0,
+      "previous_value": 19805.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6886,
+      "standard_account_code": "11340",
+      "standard_account_name": "その他貸出金",
+      "current_value": 308.0,
+      "previous_value": 279.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6887,
+      "standard_account_code": "33000",
+      "standard_account_name": "利益剰余金",
+      "current_value": 0,
+      "previous_value": 0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6888,
+      "standard_account_code": "10000",
+      "standard_account_name": "資産の部",
+      "current_value": 0,
+      "previous_value": 0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6889,
+      "standard_account_code": "21130",
+      "standard_account_name": "貯蓄貯金",
+      "current_value": 0,
+      "previous_value": 0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6890,
+      "standard_account_code": "21550",
+      "standard_account_name": "賞与引当金",
+      "current_value": 154.0,
+      "previous_value": 157.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6891,
+      "standard_account_code": "34100",
+      "standard_account_name": "評価・換算差額等",
+      "current_value": 57154.0,
+      "previous_value": 15408.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6892,
+      "standard_account_code": "11160",
+      "standard_account_name": "系統預金",
+      "current_value": 2652209.0,
+      "previous_value": 2643058.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6893,
+      "standard_account_code": "11170",
+      "standard_account_name": "系統外預金",
+      "current_value": 12.0,
+      "previous_value": 171.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6894,
+      "standard_account_code": "11420",
+      "standard_account_name": "その他販売債権",
+      "current_value": 29458.0,
+      "previous_value": 49765.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6895,
+      "standard_account_code": "11250",
+      "standard_account_name": "投資信託",
+      "current_value": 228187.0,
+      "previous_value": 205862.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6896,
+      "standard_account_code": "11260",
+      "standard_account_name": "その他有価証券",
+      "current_value": 143163.0,
+      "previous_value": 148244.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6897,
+      "standard_account_code": "11250",
+      "standard_account_name": "投資信託",
+      "current_value": 273794.0,
+      "previous_value": 223365.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6898,
+      "standard_account_code": "11730",
+      "standard_account_name": "短期貸付金",
+      "current_value": 0,
+      "previous_value": 165.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6899,
+      "standard_account_code": "11340",
+      "standard_account_name": "その他貸出金",
+      "current_value": 377346.0,
+      "previous_value": 398354.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6900,
+      "standard_account_code": "11300",
+      "standard_account_name": "貸出金",
+      "current_value": 22393.0,
+      "previous_value": 22460.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6901,
+      "standard_account_code": "11300",
+      "standard_account_name": "貸出金",
+      "current_value": 201803.0,
+      "previous_value": 199848.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6902,
+      "standard_account_code": "11320",
+      "standard_account_name": "組合員以外貸出金",
+      "current_value": 79.0,
+      "previous_value": 89.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6903,
+      "standard_account_code": "11180",
+      "standard_account_name": "その他預金",
+      "current_value": 26.0,
+      "previous_value": 26.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6904,
+      "standard_account_code": "11340",
+      "standard_account_name": "その他貸出金",
+      "current_value": 36.0,
+      "previous_value": 189.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6905,
+      "standard_account_code": "12330",
+      "standard_account_name": "子会社出資金",
+      "current_value": 665.0,
+      "previous_value": 665.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6906,
+      "standard_account_code": "11340",
+      "standard_account_name": "その他貸出金",
+      "current_value": 308.0,
+      "previous_value": 279.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6907,
+      "standard_account_code": "21560",
+      "standard_account_name": "その他",
+      "current_value": 398777.0,
+      "previous_value": 323586.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6908,
+      "standard_account_code": "21240",
+      "standard_account_name": "その他短期借入金",
+      "current_value": 92200.0,
+      "previous_value": 153500.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6909,
+      "standard_account_code": "21400",
+      "standard_account_name": "経済受託債務",
+      "current_value": 0,
+      "previous_value": 0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6910,
+      "standard_account_code": "21500",
+      "standard_account_name": "その他流動負債",
+      "current_value": 1004.0,
+      "previous_value": 835.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6911,
+      "standard_account_code": "21510",
+      "standard_account_name": "未払費用",
+      "current_value": 119.0,
+      "previous_value": 298.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6912,
+      "standard_account_code": "21240",
+      "standard_account_name": "その他短期借入金",
+      "current_value": 0,
+      "previous_value": 1.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS負債"
+    },
+    {
+      "id": 6913,
+      "standard_account_code": "34130",
+      "standard_account_name": "土地再評価差額金",
+      "current_value": 1.0,
+      "previous_value": 1.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6914,
+      "standard_account_code": "33000",
+      "standard_account_name": "利益剰余金",
+      "current_value": 86100.0,
+      "previous_value": 84800.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6915,
+      "standard_account_code": "33220",
+      "standard_account_name": "経営安定対策積立金",
+      "current_value": 32500.0,
+      "previous_value": 32500.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6916,
+      "standard_account_code": "33200",
+      "standard_account_name": "任意積立金",
+      "current_value": 2800.0,
+      "previous_value": 2400.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6917,
+      "standard_account_code": "33200",
+      "standard_account_name": "任意積立金",
+      "current_value": 45600.0,
+      "previous_value": 45600.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    },
+    {
+      "id": 6918,
+      "standard_account_code": "31100",
+      "standard_account_name": "組合員出資金",
+      "current_value": 502260.0,
+      "previous_value": 497104.0,
+      "statement_type": "bs",
+      "statement_subtype": "BS資産"
+    }
+  ]
+}
