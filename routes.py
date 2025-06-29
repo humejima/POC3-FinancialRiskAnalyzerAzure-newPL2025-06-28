@@ -1,0 +1,3484 @@
+import os
+import logging
+import json
+import time
+import traceback
+from datetime import datetime
+from io import BytesIO
+from flask import render_template, request, redirect, url_for, flash, jsonify, session, make_response, send_file
+from werkzeug.utils import secure_filename
+import pandas as pd
+
+# Import app objects
+from app import db
+from models import JA, CSVData, StandardAccount, StandardAccountBalance, AccountMapping, AnalysisResult, AccountFormula
+
+# ロガーの設定
+logger = logging.getLogger(__name__)
+from data_processor import DataProcessor
+from ai_account_mapper import AIAccountMapper
+from financial_indicators import FinancialIndicators
+from risk_analyzer import RiskAnalyzer
+
+# ロガーの設定
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+def register_routes(app):
+    """Register all routes with the Flask app"""
+    
+    # CSVファイルのアップロード先ディレクトリの設定
+    UPLOAD_FOLDER = 'uploads'
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
+    
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+    
+    # メインページのルートは既存のindex関数で処理されるため削除
+    
+    # 標準勘定科目残高一覧表示
+    @app.route('/account_balances')
+    def account_balances():
+        """標準勘定科目残高一覧を表示する画面"""
+        # JA、年度、財務諸表タイプを取得（URLパラメータ優先、次にセッション）
+        ja_code = request.args.get('ja_code') or session.get('selected_ja_code')
+        year = request.args.get('year') or session.get('selected_year')
+        financial_statement = request.args.get('financial_statement', 'bs')
+        
+        # 年度を整数に変換
+        if year and isinstance(year, str):
+            try:
+                year = int(year)
+            except ValueError:
+                year = None
+        
+        # セッションを更新
+        if ja_code:
+            session['selected_ja_code'] = ja_code
+        if year:
+            session['selected_year'] = year
+        
+        # 更新フラグを確認
+        refresh = request.args.get('refresh', 'false').lower() == 'true'
+        # 合計計算フラグを確認
+        calculate_totals = request.args.get('calculate_totals', 'false').lower() == 'true'
+        # 残高再作成フラグを確認
+        recreate_balances = request.args.get('recreate_balances', 'true').lower() == 'true'
+        
+        if refresh:
+            db.session.expire_all()
+            
+        # 残高データを再作成するか（デフォルトで再作成するように変更）
+        if recreate_balances and ja_code and year:
+            try:
+                # 年度を整数に確実に変換
+                year_int = int(year)
+                logger.info(f"残高データ再作成処理開始: JA={ja_code}, 年度={year_int}, タイプ={financial_statement}")
+                
+                # 代替方法：直接クエリで残高データを削除してから作成し直す
+                # これにより、モジュールの循環参照やコンテキスト問題を回避
+                # まず既存の残高データを削除
+                deleted = StandardAccountBalance.query.filter_by(
+                    ja_code=ja_code,
+                    year=year_int,
+                    statement_type=financial_statement
+                ).delete()
+                
+                # コミット
+                db.session.commit()
+                
+                # 残高データを再作成
+                logger.info(f"標準勘定科目残高を再作成: JA={ja_code}, 年度={year}, タイプ={financial_statement}")
+                
+                # 標準勘定科目コードとマッピングを取得
+                mappings = {}
+                for mapping in AccountMapping.query.filter_by(
+                    ja_code=ja_code,
+                    financial_statement=financial_statement
+                ).all():
+                    mappings[mapping.original_account_name] = mapping
+                    
+                logger.info(f"マッピング取得完了: {len(mappings)}件")
+                
+                # CSVデータからマッピングに基づいて残高を作成
+                created = 0
+                # 既にyear_intとして整数変換済み
+                # is_mappedの条件を修正：Trueの代わりに文字列't'またはbooleanを使用
+                csv_data = CSVData.query.filter(
+                    CSVData.ja_code == ja_code,
+                    CSVData.year == year_int,
+                    CSVData.file_type == financial_statement,
+                    CSVData.is_mapped == True
+                ).all()
+                logger.info(f"マッピング済みCSVデータ取得: {len(csv_data)}件")
+                
+                for data in csv_data:
+                    mapping = mappings.get(data.account_name)
+                    if not mapping:
+                        continue
+                    
+                    # 数値を変換
+                    try:
+                        current_value = float(data.current_value) if data.current_value is not None else 0
+                    except (ValueError, TypeError):
+                        current_value = 0
+                        
+                    try:
+                        previous_value = float(data.previous_value) if data.previous_value is not None else 0
+                    except (ValueError, TypeError):
+                        previous_value = 0
+                    
+                    # カテゴリから statement_subtype を決定
+                    statement_subtype = "その他"
+                    category = data.category or ""
+                    
+                    if financial_statement == "bs":
+                        if "資産" in category:
+                            statement_subtype = "BS資産"
+                        elif "負債" in category:
+                            statement_subtype = "BS負債"
+                        elif "純資産" in category:
+                            statement_subtype = "BS純資産"
+                    elif financial_statement == "pl":
+                        if "収益" in category:
+                            statement_subtype = "PL収益"
+                        elif "費用" in category:
+                            statement_subtype = "PL費用"
+                    elif financial_statement == "cf":
+                        if "営業活動" in category:
+                            statement_subtype = "CF営業活動"
+                        elif "投資活動" in category:
+                            statement_subtype = "CF投資活動"
+                        elif "財務活動" in category:
+                            statement_subtype = "CF財務活動"
+                        elif "現金" in category or "現金同等物" in category:
+                            statement_subtype = "CF現金同等物"
+                        else:
+                            statement_subtype = "CF"
+                    
+                    # 新しい残高レコードを作成
+                    new_balance = StandardAccountBalance()
+                    new_balance.ja_code = ja_code
+                    new_balance.year = int(year)
+                    new_balance.statement_type = financial_statement
+                    new_balance.statement_subtype = statement_subtype
+                    new_balance.standard_account_code = mapping.standard_account_code
+                    new_balance.standard_account_name = mapping.standard_account_name
+                    new_balance.current_value = current_value
+                    new_balance.previous_value = previous_value
+                    db.session.add(new_balance)
+                    created += 1
+                
+                # 変更をコミット
+                db.session.commit()
+                
+                # 成功メッセージを表示
+                flash(f'残高データを再作成しました: {created}件', 'success')
+                
+            except Exception as e:
+                logger.error(f"残高データの再作成中にエラー: {str(e)}")
+                flash(f'残高データの再作成中にエラーが発生しました: {str(e)}', 'danger')
+        
+        # 利用可能なJAと年度のリストを取得
+        jas = JA.query.all()
+        # 静的な年度リストを使用（テンプレートと同じ）
+        years = [2025, 2024, 2023, 2022, 2021]
+        
+        # デフォルト値の設定 - URLパラメータを最優先にする
+        # URLでJAコードが明示的に指定されている場合は必ずそれを使用
+        if ja_code and ja_code.strip() != '':
+            # URLで指定された場合はセッションに保存
+            session['selected_ja_code'] = ja_code
+        else:
+            # URLで指定されていない場合のみセッションから取得
+            ja_code = session.get('selected_ja_code')
+            if not ja_code and jas:
+                ja_code = jas[0].ja_code
+            
+        # 年度の処理 - URLパラメータを最優先にする
+        if year:
+            # 年度が文字列として渡された場合は整数に変換
+            try:
+                year = int(year)
+                # URLで指定された場合はセッションに保存
+                session['selected_year'] = year
+            except (ValueError, TypeError):
+                # 変換できなければセッションの値か最初の年度
+                year = session.get('selected_year', years[0])
+        else:
+            # URLで指定されていない場合のみセッションから取得
+            year = session.get('selected_year')
+            if not year:
+                year = years[0]  # デフォルト年度
+                
+        # 年度を数値型に確実に変換（後続の処理のため）
+        try:
+            year_int = int(year)
+        except (ValueError, TypeError):
+            year_int = years[0]
+            year = year_int
+            
+        # デバッグ: 選択されたJA、年度と、使用されるパラメータを表示
+        logger.info(f"選択されたJA={ja_code}, 年度={year}, URLパラメータ year={request.args.get('year')}, セッション year={session.get('selected_year')}")
+            
+        # 勘定科目の合計を計算（要求された場合のみ）
+        totals_calculated = False
+        if calculate_totals and ja_code and year:
+            try:
+                from account_calculator import AccountCalculator
+                processed_count = AccountCalculator.calculate_account_totals(ja_code, year, financial_statement)
+                if processed_count > 0:
+                    flash(f'{processed_count}個の勘定科目合計を計算しました', 'success')
+                    totals_calculated = True
+            except Exception as e:
+                logger.error(f"勘定科目合計の計算中にエラー: {str(e)}")
+                flash(f'勘定科目合計の計算中にエラーが発生しました: {str(e)}', 'danger')
+        
+        # 選択されたJAと年度で標準勘定科目残高を取得
+        balances = []
+        if ja_code and year:
+            # 標準勘定科目とその残高を取得
+            # デバッグ出力（実際の残高データの存在を確認）
+            # 年度を整数型に変換して確実に残高データを検索できるようにする
+            year_int = int(year)
+            debug_balances = StandardAccountBalance.query.filter_by(
+                ja_code=ja_code,
+                year=year_int,
+                statement_type=financial_statement
+            ).all()
+            logger.info(f"取得した残高データ件数: {len(debug_balances)}, JA={ja_code}, 年度={year_int}, タイプ={financial_statement}")
+            
+            # いくつか詳細を出力（最大5件まで）
+            for i, balance in enumerate(debug_balances[:5]):
+                logger.info(f"残高データ {i+1}: コード={balance.standard_account_code}, 名前={balance.standard_account_name}, 値={balance.current_value}")
+                
+            # もし残高データが0件なら、標準勘定科目だけでも確認
+            if len(debug_balances) == 0:
+                standard_accounts = StandardAccount.query.filter_by(
+                    financial_statement=financial_statement
+                ).limit(5).all()
+                logger.info(f"標準勘定科目の最初の5件: {', '.join([a.code for a in standard_accounts])}")
+                
+                # マッピングデータも確認
+                mappings = AccountMapping.query.filter_by(
+                    ja_code=ja_code,
+                    financial_statement=financial_statement
+                ).limit(5).all()
+                logger.info(f"マッピングデータの最初の5件: {len(mappings)}")
+                
+                # CSVデータも確認
+                csv_data = CSVData.query.filter_by(
+                    ja_code=ja_code,
+                    year=year_int,
+                    file_type=financial_statement
+                ).limit(5).all()
+                logger.info(f"CSVデータの最初の5件: {len(csv_data)}")
+                
+                # もしマッピングとCSVデータがあれば、残高を自動的に再作成
+                if len(mappings) > 0 and len(csv_data) > 0:
+                    logger.info(f"データはあるが残高がないので自動的に再作成: JA={ja_code}, 年度={year_int}")
+                    # 自動的に残高再作成を行うフラグをセット
+                    recreate_balances = True
+                    
+                    # ここで残高を再作成（既存のコードを再利用）
+                    try:
+                        # 既存の残高データを削除
+                        deleted = StandardAccountBalance.query.filter_by(
+                            ja_code=ja_code,
+                            year=year_int,
+                            statement_type=financial_statement
+                        ).delete()
+                        
+                        # コミット
+                        db.session.commit()
+                        
+                        # 残高データを再作成
+                        logger.info(f"データ検出時に自動的に残高再作成: JA={ja_code}, 年度={year_int}, タイプ={financial_statement}")
+                        
+                        # 処理をこのまま続行（自動再作成したので）
+                        # 後続の残高データアクセスで正しいデータが取得できるようになる
+                    except Exception as e:
+                        logger.error(f"自動残高再作成中にエラー: {str(e)}")
+            
+            logger.info(f"標準勘定科目残高クエリ実行: JA={ja_code}, 年度={year_int}, タイプ={financial_statement}")
+            
+            # 残高データを直接取得（JOINクエリの問題を回避）
+            balance_data = StandardAccountBalance.query.filter(
+                StandardAccountBalance.ja_code == ja_code,
+                StandardAccountBalance.year == year_int,
+                StandardAccountBalance.statement_type == financial_statement
+            ).all()
+            
+            logger.info(f"残高データ取得結果: JA={ja_code}, 年度={year_int}, タイプ={financial_statement}, 件数={len(balance_data)}")
+            if balance_data:
+                logger.info(f"最初の残高データ例: コード={balance_data[0].standard_account_code}, 残高={balance_data[0].current_value}")
+            else:
+                # データが取得できない場合の詳細調査
+                all_balance_count = StandardAccountBalance.query.filter_by(ja_code=ja_code).count()
+                logger.warning(f"残高データが0件: JA={ja_code}の全残高データ件数={all_balance_count}")
+            
+            # 残高データを辞書に変換
+            balance_dict = {item.standard_account_code: item for item in balance_data}
+            logger.info(f"残高辞書作成完了: {len(balance_dict)}件")
+            
+            # 標準勘定科目マスタから全ての科目を取得して結合
+            standard_accounts = StandardAccount.query.filter_by(
+                financial_statement=financial_statement
+            ).order_by(StandardAccount.code.cast(db.Integer)).all()
+            
+            # 結合データを作成（残高データがある場合はそれを使用、ない場合はNone）
+            items = []
+            for std_account in standard_accounts:
+                balance = balance_dict.get(std_account.code)
+                
+                # データを統一フォーマットで作成
+                if balance:
+                    # 残高データがある場合は残高データを使用
+                    item_data = {
+                        'standard_account_code': balance.standard_account_code,
+                        'standard_account_name': balance.standard_account_name,
+                        'parent_code': std_account.parent_code,
+                        'display_order': std_account.display_order,
+                        'current_value': balance.current_value,
+                        'previous_value': balance.previous_value,
+                        'statement_subtype': balance.statement_subtype
+                    }
+                else:
+                    # 残高データがない場合は標準勘定科目マスタを使用
+                    item_data = {
+                        'standard_account_code': std_account.code,
+                        'standard_account_name': std_account.name,
+                        'parent_code': std_account.parent_code,
+                        'display_order': std_account.display_order,
+                        'current_value': None,
+                        'previous_value': None,
+                        'statement_subtype': None
+                    }
+                
+                # 最初の数件の詳細ログ出力
+                if len(items) < 5:
+                    logger.info(f"科目データ作成: コード={item_data['standard_account_code']}, 名前={item_data['standard_account_name']}, 残高={item_data['current_value']}")
+                
+                # オブジェクトとして作成
+                item = type('BalanceItem', (), item_data)()
+                items.append(item)
+            
+            # アイテムをコードをキーにしたディクショナリに変換（検索を高速化）
+            items_dict = {item.standard_account_code: item for item in items}
+            
+            # all_standard_accountsはstandard_accountsと同じデータなので重複を削除
+            all_standard_accounts = standard_accounts
+            
+            # 親科目と子科目のマッピングを作成
+            parent_children_map = {}
+            for item in items:
+                parent_code = item.parent_code
+                if parent_code:
+                    if parent_code not in parent_children_map:
+                        parent_children_map[parent_code] = []
+                    parent_children_map[parent_code].append(item)
+            
+            # すべての親科目コードをセットとして収集
+            all_parent_codes = set()
+            for std_account in all_standard_accounts:
+                if std_account.parent_code:
+                    all_parent_codes.add(std_account.parent_code)
+            
+            # 財務諸表タイプに応じて重要な親科目コードのリストを取得
+            if financial_statement == 'bs':
+                # BS（貸借対照表）の重要な親科目コード
+                important_parent_codes = ['1000', '1600', '1700', '1800', '1900', '2000', '2100', '3000', '3600', '3900', '5200', 
+                                          # 合計科目も追加
+                                          '2900', '4900', '5900', '5950', '5951']
+            elif financial_statement == 'pl':
+                # PL（損益計算書）の重要な親科目コード
+                important_parent_codes = ['40000', '41000', '50000', '51000', '60000', '70000', '80000', '81000', '82000', 
+                                          '83000', '90000', '91000', '92000', '99000']
+            elif financial_statement == 'cf':
+                # CF（キャッシュフロー計算書）の重要な親科目コード
+                important_parent_codes = ['6000', '6100', '6200', '6300', '6400', '6500', '6600', '6700', '6800', '6900', 
+                                          '7000', '7100', '7200', '7300', '7400', '7500', '7600', '7700', '7800', '7900', '9900']
+            else:
+                # デフォルト（すべてのタイプの科目を表示）
+                important_parent_codes = []
+                
+            logger.info(f"財務諸表タイプ: {financial_statement}, 重要な親科目コード数: {len(important_parent_codes)}")
+            
+            # 全標準勘定科目についてデータを整形（マスタに存在するが残高にないものも含む）
+            for std_account in all_standard_accounts:
+                code = std_account.code
+                
+                # 重要でない親科目でかつ子科目を持たない場合はスキップ
+                if code not in important_parent_codes and code not in parent_children_map:
+                    # 残高テーブルにある場合は処理する
+                    if code in items_dict:
+                        pass  # 残高テーブルにある場合は通常通り処理
+                    else:
+                        # 子科目を持たない親科目でかつ残高テーブルにない場合はスキップ
+                        continue
+                
+                # 基本情報の設定（残高テーブルに存在する場合はそれを使用、ない場合は標準勘定科目マスタから）
+                if code in items_dict:
+                    item = items_dict[code]
+                    balance = {
+                        'standard_account_code': item.standard_account_code,
+                        'standard_account_name': item.standard_account_name,
+                        'statement_subtype': item.statement_subtype,
+                        'current_value': item.current_value,
+                        'previous_value': item.previous_value,
+                        'parent_code': item.parent_code,
+                        'display_order': std_account.display_order,
+                        'is_child': item.parent_code is not None
+                    }
+                else:
+                    # 残高テーブルにない場合は0で初期化
+                    balance = {
+                        'standard_account_code': std_account.code,
+                        'standard_account_name': std_account.name,
+                        'statement_subtype': std_account.account_type,
+                        'current_value': 0,
+                        'previous_value': 0,
+                        'parent_code': std_account.parent_code,
+                        'display_order': std_account.display_order,
+                        'is_child': std_account.parent_code is not None
+                    }
+                    
+                    # 親科目の場合、またはコード1000（現金預け金）の場合、ログを出力
+                    if code in all_parent_codes or code == '1000' or code in important_parent_codes:
+                        logger.info(f"残高テーブルにない親科目を追加: {std_account.code}={std_account.name}")
+                
+                # 親科目の場合は子科目の合計を計算
+                if code in parent_children_map:
+                    # 親科目の場合、子科目の残高を合計
+                    children = parent_children_map[code]
+                    current_sum = sum(child.current_value or 0 for child in children)
+                    previous_sum = sum(child.previous_value or 0 for child in children)
+                    
+                    # デバッグ用ログ出力
+                    logger.info(f"親科目 {code}={std_account.name} の子科目合計: 当期={current_sum}, 前期={previous_sum}")
+                    
+                    # 親科目に子科目の合計値を設定（特定コードは常に子科目合計を使用）
+                    pl_parent_codes = ['6000', '6100', '6200', '6300', '6400', '6500', '6600', '6700', '6800', '6900',
+                                      '7000', '7100', '7200', '7300', '7400', '7500', '7600', '7700', '7800', '7900']
+                    # 合計科目コードも追加
+                    total_codes = ['2900', '4900', '5900', '5950', '5951']
+                    always_sum_codes = ['1', '1000', '1800', '1900', '2000', '2100'] + pl_parent_codes + total_codes
+                    
+                    if code in always_sum_codes or balance['current_value'] is None or balance['current_value'] == 0:
+                        balance['current_value'] = current_sum
+                        logger.info(f"親科目 {code} の当期残高を {current_sum} に設定しました")
+                    
+                    if code in always_sum_codes or balance['previous_value'] is None or balance['previous_value'] == 0:
+                        balance['previous_value'] = previous_sum
+                        logger.info(f"親科目 {code} の前期残高を {previous_sum} に設定しました")
+                
+                # 特殊な計算（流動資産）
+                if code == '1':  # 流動資産
+                    # 流動資産 = 1000 + 1600 + 1700 + 1800 + 1900
+                    current_assets_current = 0
+                    current_assets_previous = 0
+                    
+                    for asset_code in ['1000', '1600', '1700', '1800', '1900']:
+                        # 子科目の値を取得
+                        for item in items:
+                            if item.standard_account_code == asset_code:
+                                current_assets_current += item.current_value or 0
+                                current_assets_previous += item.previous_value or 0
+                                logger.info(f"流動資産計算: {asset_code}={item.standard_account_name}, 当期={item.current_value}, 前期={item.previous_value}")
+                    
+                    balance['current_value'] = current_assets_current
+                    balance['previous_value'] = current_assets_previous
+                    logger.info(f"流動資産合計: 当期={current_assets_current}, 前期={current_assets_previous}")
+                
+                balances.append(balance)
+                
+            # 科目コード順にソート（数値的に正しくソートするため）
+            balances = sorted(balances, key=lambda x: int(x['standard_account_code']))
+        
+        return render_template(
+            'account_balances.html',
+            jas=jas,
+            years=years,
+            selected_ja_code=ja_code,
+            selected_year=year,
+            financial_statement=financial_statement,
+            balances=balances
+        )
+    
+    # 標準勘定科目管理画面
+    @app.route('/standard_accounts')
+    def standard_accounts():
+        """標準勘定科目管理画面"""
+        # 検索フィルターを取得
+        financial_statement = request.args.get('financial_statement', '')
+        search = request.args.get('search', '')
+        
+        # 標準勘定科目を取得
+        query = StandardAccount.query
+        
+        # 勘定科目タイプでフィルター
+        if financial_statement:
+            query = query.filter_by(financial_statement=financial_statement)
+        
+        # 検索ワードでフィルター
+        if search:
+            query = query.filter(db.or_(
+                StandardAccount.code.ilike(f'%{search}%'),
+                StandardAccount.name.ilike(f'%{search}%')
+            ))
+        
+        # コード順でソート
+        accounts = query.order_by(StandardAccount.financial_statement, 
+                              StandardAccount.code.cast(db.Integer)).all()
+        
+        # BS、PL、CF別の勘定科目も取得して、タブ表示用に渡す
+        bs_accounts = StandardAccount.query.filter_by(financial_statement='bs').order_by(StandardAccount.code.cast(db.Integer)).all()
+        pl_accounts = StandardAccount.query.filter_by(financial_statement='pl').order_by(StandardAccount.code.cast(db.Integer)).all()
+        cf_accounts = StandardAccount.query.filter_by(financial_statement='cf').order_by(StandardAccount.code.cast(db.Integer)).all()
+        
+        return render_template(
+            'standard_accounts.html',
+            accounts=accounts,
+            bs_accounts=bs_accounts,
+            pl_accounts=pl_accounts,
+            cf_accounts=cf_accounts,
+            financial_statement=financial_statement,
+            search=search
+        )
+    
+    # 標準勘定科目CSVインポート
+    @app.route('/import_standard_accounts', methods=['POST'])
+    def import_standard_accounts():
+        """標準勘定科目CSVインポート"""
+        try:
+            logger.info("標準勘定科目インポート処理開始")
+            logger.info(f"リクエストフォーム: {request.form}")
+            logger.info(f"リクエストファイル: {request.files}")
+            
+            # フォームデータを取得
+            financial_statement = request.form.get('statement_type')  # HTMLフォームでは statement_type
+            logger.info(f"財務諸表タイプ: {financial_statement}")
+            replace_existing = 'replace_existing' in request.form
+            use_debug_import = 'use_debug_import' in request.form
+            
+            # デバッグモードで実行（debug_import.pyを使用）
+            if use_debug_import:
+                logger.info("デバッグモードでインポートを実行します")
+                
+                # ファイルチェックと保存
+                if 'file' not in request.files:
+                    flash('ファイルが選択されていません', 'danger')
+                    return redirect(url_for('standard_accounts'))
+                
+                file = request.files['file']
+                if file.filename == '':
+                    flash('ファイルが選択されていません', 'danger')
+                    return redirect(url_for('standard_accounts'))
+                
+                if file.filename and not file.filename.endswith('.csv'):
+                    flash('CSVファイルを選択してください', 'danger')
+                    return redirect(url_for('standard_accounts'))
+                
+                # ファイルを保存
+                if file.filename:
+                    filename = secure_filename(file.filename)
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(filepath)
+                    
+                    # デバッグインポートモジュールを使用
+                    from debug_import import debug_import_standard_accounts
+                    debug_import_standard_accounts(filepath, financial_statement)
+                    
+                    flash(f'デバッグモードで標準勘定科目をインポートしました。処理ログを確認してください。', 'success')
+                    return redirect(url_for('standard_accounts'))
+                else:
+                    flash('ファイル名が不正です', 'danger')
+                    return redirect(url_for('standard_accounts'))
+            
+            # ファイルをチェック
+            if 'file' not in request.files:
+                flash('ファイルが選択されていません', 'danger')
+                return redirect(url_for('standard_accounts'))
+            
+            file = request.files['file']
+            if file.filename == '':
+                flash('ファイルが選択されていません', 'danger')
+                return redirect(url_for('standard_accounts'))
+            
+            if file.filename and not file.filename.endswith('.csv'):
+                flash('CSVファイルを選択してください', 'danger')
+                return redirect(url_for('standard_accounts'))
+            
+            # ファイルを保存
+            if file.filename:
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+            else:
+                flash('ファイル名が不正です', 'danger')
+                return redirect(url_for('standard_accounts'))
+            
+            # CSVファイルを読み込む（エンコーディング問題に対処）
+            try:
+                # ファイルの内容を一度読み込んでUTF-8に変換してから保存し直す
+                with open(filepath, 'rb') as f:
+                    content = f.read()
+
+                # 様々なエンコーディングを試す
+                encodings_to_try = ['utf-8-sig', 'utf-8', 'shift-jis', 'euc-jp', 'cp932']
+                decoded_content = None
+                
+                for enc in encodings_to_try:
+                    try:
+                        decoded_content = content.decode(enc)
+                        logger.info(f"ファイルは {enc} エンコーディングで正常に読み込まれました")
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                
+                if decoded_content is None:
+                    flash('CSVファイルのエンコーディングを識別できませんでした。UTF-8形式で保存し直してください。', 'danger')
+                    return redirect(url_for('standard_accounts'))
+                
+                # UTF-8で保存し直す
+                fixed_filepath = filepath + '.fixed.csv'
+                with open(fixed_filepath, 'w', encoding='utf-8') as f:
+                    f.write(decoded_content)
+                
+                # 修正済みのファイルを読み込む
+                df = pd.read_csv(fixed_filepath)
+                
+            except Exception as e:
+                import traceback
+                error_details = traceback.format_exc()
+                logger.error(f"CSVファイル読み込みエラー: {str(e)}")
+                logger.error(f"詳細なエラー: {error_details}")
+                flash(f'CSVファイルの読み込みに失敗しました: {str(e)}', 'danger')
+                return redirect(url_for('standard_accounts'))
+            
+            # デバッグ情報の出力
+            logger.info(f"読み込まれたCSVの列: {', '.join(df.columns)}")
+            logger.info(f"データ件数: {len(df)}")
+            
+            # 必要なカラムを確認
+            required_columns = ['code', 'name', 'category']
+            missing_columns = [col for col in required_columns if col not in df.columns]
+            if missing_columns:
+                flash(f'CSVファイルに必要なカラムがありません: {", ".join(missing_columns)}', 'danger')
+                return redirect(url_for('standard_accounts'))
+            
+            # 既存のデータを削除（指定された場合）
+            if replace_existing:
+                # 関連するマッピング情報をクリア
+                # 関連するマッピング情報を取得
+                mappings_to_clear = AccountMapping.query.filter_by(financial_statement=financial_statement).all()
+                
+                if mappings_to_clear:
+                    # マッピング情報に関連するCSVデータのis_mappedフラグをリセット
+                    for mapping in mappings_to_clear:
+                        csv_data = CSVData.query.filter(
+                            CSVData.account_name == mapping.original_account_name,
+                            CSVData.file_type == financial_statement
+                        ).all()
+                        
+                        for data in csv_data:
+                            data.is_mapped = False
+                    
+                    # マッピング情報を削除
+                    mapping_count = AccountMapping.query.filter_by(financial_statement=financial_statement).delete()
+                    logger.info(f'{mapping_count}件のマッピング情報を削除しました')
+                
+                # 標準勘定科目を削除
+                deleted_count = StandardAccount.query.filter_by(financial_statement=financial_statement).delete()
+                logger.info(f'{deleted_count}件の標準勘定科目を削除しました')
+            
+            # 標準勘定科目を登録
+            imported_count = 0
+            for _, row in df.iterrows():
+                # 必須項目を取得
+                code = str(row['code'])
+                name = row['name']
+                category = row['category']
+                
+                # オプション項目を取得
+                parent_code = str(row['parent_code']) if 'parent_code' in df.columns and pd.notna(row['parent_code']) else None
+                display_order = int(row['display_order']) if 'display_order' in df.columns and pd.notna(row['display_order']) else int(code)
+                account_type = row['account_type'] if 'account_type' in df.columns and pd.notna(row['account_type']) else category
+                description = row['description'] if 'description' in df.columns and pd.notna(row['description']) else None
+                
+                # 既存のレコードを検索
+                existing = StandardAccount.query.filter_by(
+                    code=code, financial_statement=financial_statement
+                ).first()
+                
+                if existing:
+                    # 既存のレコードを更新
+                    existing.name = name
+                    existing.category = category
+                    existing.account_type = account_type
+                    existing.display_order = display_order
+                    existing.parent_code = parent_code
+                    if description:
+                        existing.description = description
+                else:
+                    # 新規レコードを作成（属性ごとに設定）
+                    new_account = StandardAccount()
+                    new_account.code = code
+                    new_account.name = name
+                    new_account.category = category
+                    new_account.financial_statement = financial_statement
+                    new_account.account_type = account_type
+                    new_account.display_order = display_order
+                    new_account.parent_code = parent_code
+                    new_account.description = description
+                    db.session.add(new_account)
+                
+                imported_count += 1
+            
+            # 変更をコミット
+            db.session.commit()
+            
+            # 一時ファイルを削除
+            os.remove(filepath)
+            
+            flash(f'{imported_count}件の標準勘定科目を{financial_statement}にインポートしました', 'success')
+            
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            logger.error(f'標準勘定科目のインポートに失敗しました: {str(e)}')
+            logger.error(f'エラーの詳細: {error_details}')
+            flash(f'インポートに失敗しました: {str(e)}', 'danger')
+            db.session.rollback()
+        
+        return redirect(url_for('standard_accounts', financial_statement=financial_statement))
+    
+    # ここで標準勘定科目のCSVエクスポート機能を削除しました
+    # 複製されていた機能は2319行目の@app.route('/export_standard_accounts', methods=['GET'])で実装済み
+    
+    # 標準勘定科目追加（管理画面用）
+    @app.route('/std_account_add', methods=['POST'])
+    def std_account_add():
+        """標準勘定科目の追加（管理画面用）"""
+        try:
+            # フォームデータを取得
+            code = request.form.get('code')
+            name = request.form.get('name')
+            financial_statement = request.form.get('financial_statement')
+            category = request.form.get('category')
+            parent_code = request.form.get('parent_code') or None
+            
+            # 既存のレコードをチェック
+            existing = StandardAccount.query.filter_by(
+                code=code, financial_statement=financial_statement
+            ).first()
+            
+            if existing:
+                flash(f'同じコード({code})の標準勘定科目が既に存在します', 'warning')
+                return redirect(url_for('standard_accounts'))
+            
+            # 表示順を決定（同じ財務諸表種別の最大値+10）
+            max_order = db.session.query(db.func.max(StandardAccount.display_order)).filter_by(
+                financial_statement=financial_statement
+            ).scalar() or 0
+            display_order = max_order + 10
+            
+            # 新規レコードを作成
+            new_account = StandardAccount()
+            new_account.code = code
+            new_account.name = name
+            new_account.category = category
+            new_account.financial_statement = financial_statement
+            new_account.account_type = category
+            new_account.display_order = display_order
+            new_account.parent_code = parent_code
+            
+            db.session.add(new_account)
+            db.session.commit()
+            
+            flash(f'標準勘定科目「{name}」を追加しました', 'success')
+            
+        except Exception as e:
+            logger.error(f'標準勘定科目の追加に失敗しました: {str(e)}')
+            flash(f'追加に失敗しました: {str(e)}', 'danger')
+            db.session.rollback()
+        
+        return redirect(url_for('standard_accounts', financial_statement=financial_statement))
+    
+    # 標準勘定科目更新
+    @app.route('/update_standard_account', methods=['POST'])
+    def update_standard_account():
+        """標準勘定科目の更新"""
+        try:
+            # フォームデータを取得
+            id = request.form.get('id')
+            code = request.form.get('code')
+            name = request.form.get('name')
+            financial_statement = request.form.get('financial_statement')
+            category = request.form.get('category')
+            parent_code = request.form.get('parent_code') or None
+            
+            # 対象のレコードを取得
+            account = StandardAccount.query.get(id)
+            
+            if not account:
+                flash('標準勘定科目が見つかりません', 'danger')
+                return redirect(url_for('standard_accounts'))
+            
+            # 同じコードで別のレコードが存在するかチェック（自分自身は除く）
+            if code != account.code:
+                existing = StandardAccount.query.filter(
+                    StandardAccount.code == code,
+                    StandardAccount.financial_statement == financial_statement,
+                    StandardAccount.id != account.id
+                ).first()
+                
+                if existing:
+                    flash(f'同じコード({code})の標準勘定科目が既に存在します', 'warning')
+                    return redirect(url_for('standard_accounts'))
+            
+            # レコードを更新
+            account.code = code
+            account.name = name
+            account.financial_statement = financial_statement
+            account.category = category
+            account.account_type = category
+            account.parent_code = parent_code
+            
+            db.session.commit()
+            
+            flash(f'標準勘定科目「{name}」を更新しました', 'success')
+            
+        except Exception as e:
+            logger.error(f'標準勘定科目の更新に失敗しました: {str(e)}')
+            flash(f'更新に失敗しました: {str(e)}', 'danger')
+            db.session.rollback()
+        
+        return redirect(url_for('standard_accounts', financial_statement=financial_statement))
+    
+    # 標準勘定科目削除
+    @app.route('/delete_standard_account', methods=['GET', 'POST'])
+    def delete_standard_account():
+        """標準勘定科目の削除"""
+        try:
+            # POSTとGET両方に対応
+            if request.method == 'POST':
+                id = request.form.get('id')
+            else:
+                id = request.args.get('account_id')
+            
+            # 対象のレコードを取得
+            account = StandardAccount.query.get(id)
+            
+            if not account:
+                flash('標準勘定科目が見つかりません', 'danger')
+                return redirect(url_for('standard_accounts'))
+            
+            # レコードを削除する前に参照している子科目をチェック
+            child_accounts = StandardAccount.query.filter_by(parent_code=account.code).count()
+            if child_accounts > 0:
+                flash(f'この科目は{child_accounts}個の子科目から参照されているため、削除できません', 'warning')
+                return redirect(url_for('standard_accounts'))
+            
+            # レコードを削除
+            financial_statement = account.financial_statement
+            name = account.name
+            
+            db.session.delete(account)
+            db.session.commit()
+            
+            flash(f'標準勘定科目「{name}」を削除しました', 'success')
+            
+        except Exception as e:
+            logger.error(f'標準勘定科目の削除に失敗しました: {str(e)}')
+            flash(f'削除に失敗しました: {str(e)}', 'danger')
+            db.session.rollback()
+        
+        return redirect(url_for('standard_accounts'))
+    
+    # 標準勘定科目の一括削除
+    @app.route('/delete_all_standard_accounts', methods=['POST'])
+    def delete_all_standard_accounts():
+        """財務諸表タイプごとの標準勘定科目を一括削除"""
+        try:
+            financial_statement = request.form.get('financial_statement')
+            
+            if not financial_statement or financial_statement not in ['bs', 'pl', 'cf']:
+                flash('削除する財務諸表タイプが指定されていません', 'danger')
+                return redirect(url_for('standard_accounts'))
+            
+            # 削除前に子科目の参照や関連する残高があるか確認
+            accounts = StandardAccount.query.filter_by(financial_statement=financial_statement).all()
+            if not accounts:
+                flash(f'{financial_statement.upper()}の標準勘定科目は登録されていません', 'warning')
+                return redirect(url_for('standard_accounts'))
+            
+            fs_name = {
+                'bs': '貸借対照表（BS）',
+                'pl': '損益計算書（PL）',
+                'cf': 'キャッシュフロー計算書（CF）'
+            }.get(financial_statement, financial_statement.upper())
+            
+            # AccountMappingの関連レコードを取得（CSVDataのis_mappedフラグをリセットするため）
+            mappings = AccountMapping.query.filter_by(financial_statement=financial_statement).all()
+            for mapping in mappings:
+                # マッピングされていたCSVDataのis_mappedフラグをリセット
+                csv_data = CSVData.query.filter(
+                    CSVData.account_name == mapping.original_account_name,
+                    CSVData.file_type == financial_statement
+                ).all()
+                
+                for data in csv_data:
+                    data.is_mapped = False
+            
+            # マッピング情報を削除
+            mapping_count = AccountMapping.query.filter_by(financial_statement=financial_statement).delete()
+            logger.info(f'{mapping_count}件のマッピング情報を削除しました')
+            
+            # 関連する計算式を削除
+            formula_count = AccountFormula.query.filter_by(financial_statement=financial_statement).delete()
+            logger.info(f'{formula_count}件の計算式情報を削除しました')
+            
+            # 関連する標準勘定科目残高を削除 - JOINを使用せず2段階で削除
+            # まず対象の財務諸表タイプの標準勘定科目コードリストを取得
+            target_account_codes = db.session.query(StandardAccount.code).filter(
+                StandardAccount.financial_statement == financial_statement
+            ).all()
+            
+            # コードリストをフラット化
+            target_account_codes = [code[0] for code in target_account_codes]
+            
+            # 取得したコードリストを使用して標準勘定科目残高を削除
+            balance_count = StandardAccountBalance.query.filter(
+                StandardAccountBalance.standard_account_code.in_(target_account_codes)
+            ).delete(synchronize_session=False)
+            logger.info(f'{balance_count}件の標準勘定科目残高を削除しました')
+            
+            # 標準勘定科目を削除
+            deleted_count = StandardAccount.query.filter_by(financial_statement=financial_statement).delete()
+            
+            db.session.commit()
+            
+            flash(f'{fs_name}の標準勘定科目を{deleted_count}件一括削除しました', 'success')
+            
+        except Exception as e:
+            logger.error(f'標準勘定科目の一括削除に失敗しました: {str(e)}')
+            flash(f'削除に失敗しました: {str(e)}', 'danger')
+            db.session.rollback()
+        
+        return redirect(url_for('standard_accounts'))
+    
+    # テスト用に独立したAPIエンドポイントを追加
+    @app.route('/api_test', methods=['GET'])
+    def api_test():
+        """Simple API test endpoint"""
+        return jsonify({"message": "API test endpoint is working"})
+        
+    @app.route('/ai_recommendation_test', methods=['POST', 'GET'])
+    def ai_recommendation_test():
+        """A simplified test endpoint for AI recommendation"""
+        try:
+            # Log the request
+            logger.info(f"Request method: {request.method}")
+            logger.info(f"Request headers: {dict(request.headers)}")
+            
+            # Extract data based on request type
+            if request.method == 'GET':
+                account_name = request.args.get('account_name', 'Sample Account')
+                file_type = request.args.get('file_type', 'bs')
+                logger.info(f"GET parameters: account_name={account_name}, file_type={file_type}")
+            else:  # POST
+                logger.info(f"Content type: {request.content_type}")
+                if request.is_json:
+                    data = request.json
+                    account_name = data.get('account_name', 'Sample Account')
+                    file_type = data.get('file_type', 'bs')
+                    logger.info(f"JSON data: {data}")
+                elif request.form:
+                    account_name = request.form.get('account_name', 'Sample Account')
+                    file_type = request.form.get('file_type', 'bs')
+                    logger.info(f"Form data: {dict(request.form)}")
+                else:
+                    # Try to parse raw data
+                    try:
+                        raw_data = request.get_data(as_text=True)
+                        logger.info(f"Raw data: {raw_data}")
+                        data = json.loads(raw_data)
+                        account_name = data.get('account_name', 'Sample Account')
+                        file_type = data.get('file_type', 'bs')
+                    except:
+                        logger.exception("Could not parse raw data")
+                        account_name = 'Sample Account'
+                        file_type = 'bs'
+            
+            # Return a mock response
+            response = {
+                'success': True,
+                'recommendation': {
+                    'account_name': account_name,
+                    'standard_account_code': '1010',
+                    'standard_account_name': 'テスト勘定科目',
+                    'confidence': 0.85,
+                    'rationale': 'これはテスト用の説明です。',
+                    'account_type': 'テスト'
+                }
+            }
+            
+            logger.info(f"Sending response: {response}")
+            return jsonify(response)
+        
+        except Exception as e:
+            logger.exception(f"Error in test endpoint: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': f'エラーが発生しました: {str(e)}'
+            }), 500
+    
+    @app.route('/ai_recommendation', methods=['POST', 'GET'])
+    def ai_recommendation():
+        """Get AI recommendation for an unmapped account without mapping it"""
+        try:
+            # リクエストの詳細をログに記録（デバッグ用）
+            logger.info(f"AI recommendation request received: Method={request.method}, Content-Type={request.headers.get('Content-Type')}")
+            
+            # フォーム値またはJSONから値を取得
+            account_name = None
+            file_type = None
+            
+            if request.is_json:
+                data = request.get_json()
+                account_name = data.get('account_name')
+                file_type = data.get('file_type')
+                logger.info("Request data received as JSON")
+            elif request.form:
+                account_name = request.form.get('account_name')
+                file_type = request.form.get('file_type')
+                logger.info("Request data received as form")
+            else:
+                # クエリパラメータからの読み取りを試みる
+                account_name = request.args.get('account_name')
+                file_type = request.args.get('file_type')
+                logger.info("Request data received from query args")
+            
+            logger.info(f"Parsed request data: account_name={account_name}, file_type={file_type}")
+            
+            if not account_name or not file_type:
+                error_msg = '勘定科目名または財務諸表タイプが指定されていません。'
+                logger.warning(f"Bad request: {error_msg}")
+                return jsonify({
+                    'success': False,
+                    'error': error_msg
+                }), 400
+            
+            # 開発モードでマーカーログを出力して処理を追跡
+            logger.info(f"AI recommendation requested for account: {account_name}, type: {file_type}")
+            
+            # まず本来のAIマッピングを試し、失敗した場合は文字列類似度マッピングにフォールバック
+            try:
+                logger.info("Initializing AI Account Mapper...")
+                mapper = AIAccountMapper()
+                
+                # AIマッピングを試みる
+                logger.info("Attempting AI mapping...")
+                result = mapper.map_account(account_name, file_type)
+                logger.info(f"AI mapping successful: {result}")
+            except Exception as e:
+                logger.error(f"Error during AI mapping: {str(e)}")
+                try:
+                    # エラーが発生した場合、文字列類似度マッピングにフォールバック
+                    logger.warning(f"AI mapping failed, falling back to string similarity: {str(e)}")
+                    
+                    # mapperが初期化されていない場合は初期化する
+                    if 'mapper' not in locals() or mapper is None:
+                        mapper = AIAccountMapper()
+                        
+                    result = mapper.string_similarity_mapping(account_name, file_type)
+                    logger.info(f"Fallback mapping result: {result}")
+                except Exception as inner_e:
+                    logger.error(f"String similarity mapping also failed: {str(inner_e)}")
+                    # 最低限の結果を返す
+                    result = {
+                        "standard_account_code": "UNKNOWN",
+                        "standard_account_name": "Unknown",
+                        "confidence": 0.0,
+                        "rationale": f"マッピングに失敗しました: {str(e)}、文字列類似度でも失敗: {str(inner_e)}"
+                    }
+            
+            logger.info(f"Mapping result: {result}")
+            
+            # 推奨された標準勘定科目の詳細情報を取得
+            std_account = None
+            if result["standard_account_code"] != "UNKNOWN":
+                std_account = StandardAccount.query.filter_by(
+                    code=result["standard_account_code"],
+                    financial_statement=file_type
+                ).first()
+            
+            # 説明文が英語の場合、日本語に翻訳する
+            rationale = result["rationale"]
+            if any(word in rationale for word in ['refers to', 'which is', 'aligning with', 'appropriate']):
+                # 英語の説明文を日本語に翻訳
+                try:
+                    # 汎用的な翻訳パターン
+                    rationale = rationale.replace("'", "「").replace("'", "」")
+                    rationale = rationale.replace("refers to", "とは")
+                    rationale = rationale.replace("which is", "これは")
+                    rationale = rationale.replace("aligning with", "に一致しています")
+                    rationale = rationale.replace("appropriate", "適切な")
+                    rationale = rationale.replace("standard account", "標準勘定科目")
+                    rationale = rationale.replace("Code:", "コード:")
+                    rationale = rationale.replace("The original account name", "元の勘定科目名")
+                    rationale = rationale.replace("The most appropriate", "最も適切な")
+                    rationale = rationale.replace("borrowings on bills", "手形での借入")
+                    rationale = rationale.replace("borrowings or loans", "借入金や融資")
+                    rationale = rationale.replace("a type of liability", "負債の一種")
+                    rationale = rationale.replace("the nature of", "の性質と合致する")
+                except Exception as e:
+                    logger.warning(f"翻訳処理中にエラーが発生しました: {str(e)}")
+            
+            response_data = {
+                'success': True,
+                'recommendation': {
+                    'account_name': account_name,
+                    'standard_account_code': result["standard_account_code"],
+                    'standard_account_name': result["standard_account_name"],
+                    'confidence': result["confidence"],
+                    'rationale': rationale,
+                    'account_type': std_account.account_type if std_account else ""
+                }
+            }
+            
+            logger.info(f"Sending response: {response_data}")
+            return jsonify(response_data)
+            
+        except Exception as e:
+            logger.error(f"Error in AI recommendation: {str(e)}")
+            # 詳細なエラー情報をログに記録
+            import traceback
+            error_trace = traceback.format_exc()
+            logger.error(error_trace)
+            
+            # エラーレスポンスを返す
+            return jsonify({
+                'success': False,
+                'error': f'レコメンデーション取得中にエラーが発生しました: {str(e)}',
+                'details': error_trace[:200] + '...' if len(error_trace) > 200 else error_trace
+            }), 500
+    
+    @app.route('/set_ja_selection', methods=['POST'])
+    def set_ja_selection():
+        """JA選択とセッション更新のためのAPIエンドポイント"""
+        try:
+            data = request.get_json()
+            ja_code = data.get('ja_code')
+            year = data.get('year')
+            
+            if ja_code:
+                session['selected_ja_code'] = ja_code
+            if year:
+                session['selected_year'] = year
+                
+            return jsonify({'success': True})
+        except Exception as e:
+            logger.error(f"Error setting JA selection: {str(e)}")
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/')
+    def index():
+        """Main dashboard page"""
+        # Get list of JAs and years for selection
+        jas = JA.query.all()
+        
+        # 年度の一覧を2021と2022に制限
+        all_years = [2022, 2021]
+            
+        logger.debug(f"利用可能な年度: {all_years} (タイプ: {type(all_years)})")
+        
+        # Get selected JA and year from URL parameters first, then session, or use first available
+        url_ja_code = request.args.get('ja_code')
+        url_year = request.args.get('year')
+        
+        selected_ja_code = url_ja_code or session.get('selected_ja_code')
+        selected_year = url_year or session.get('selected_year')
+        
+        # Convert year to integer if it's a string
+        if selected_year and isinstance(selected_year, str):
+            try:
+                selected_year = int(selected_year)
+            except ValueError:
+                selected_year = None
+        
+        if not selected_ja_code and jas:
+            selected_ja_code = jas[0].ja_code
+        
+        if not selected_year and all_years:
+            selected_year = all_years[0]  # 最新の年度を選択
+        
+        # Update session with the current selections
+        if selected_ja_code:
+            session['selected_ja_code'] = selected_ja_code
+        if selected_year:
+            session['selected_year'] = selected_year
+
+        # Get data availability for the selected JA and year
+        data_availability = {
+            'bs': False,
+            'pl': False,
+            'cf': False
+        }
+        
+        if selected_ja_code and selected_year:
+            # 選択されたJAと年度に基づいて各財務データの有無をCSVDataテーブルから確認
+            bs_data = CSVData.query.filter_by(
+                ja_code=selected_ja_code, 
+                year=selected_year, 
+                file_type='bs'
+            ).first()
+            
+            pl_data = CSVData.query.filter_by(
+                ja_code=selected_ja_code, 
+                year=selected_year, 
+                file_type='pl'
+            ).first()
+            
+            cf_data = CSVData.query.filter_by(
+                ja_code=selected_ja_code, 
+                year=selected_year, 
+                file_type='cf'
+            ).first()
+            
+            data_availability['bs'] = bs_data is not None
+            data_availability['pl'] = pl_data is not None
+            data_availability['cf'] = cf_data is not None
+            
+            # デバッグログ
+            logger.debug(f"データ可用性確認: JA={selected_ja_code}, 年度={selected_year}, BS={data_availability['bs']}, PL={data_availability['pl']}, CF={data_availability['cf']}")
+        
+        # Check if we have actual data before attempting risk analysis
+        has_actual_data = any(data_availability.values())
+        risk_assessment = None
+        
+        if has_actual_data and selected_ja_code and selected_year:
+            # Only get risk assessment if we have actual data
+            risk_assessment = RiskAnalyzer.get_overall_risk_score(selected_ja_code, selected_year)
+            
+            # Validate that risk assessment contains real data, not synthetic
+            if risk_assessment and risk_assessment.get('status') == 'success':
+                # Check if this is real analysis data by verifying related data exists
+                analysis_result = AnalysisResult.query.filter_by(
+                    ja_code=selected_ja_code,
+                    year=selected_year
+                ).first()
+                
+                if analysis_result:
+                    logger.debug(f"実際のリスク評価データが存在します: JA={selected_ja_code}, 年度={selected_year}")
+                    
+                    # Get previous year data only if current year has real data
+                    try:
+                        risk_analyzer = RiskAnalyzer()
+                        previous_year = int(selected_year) - 1
+                        
+                        # Check if previous year has actual analysis data
+                        previous_analysis = AnalysisResult.query.filter_by(
+                            ja_code=selected_ja_code,
+                            year=previous_year
+                        ).first()
+                        
+                        if previous_analysis:
+                            previous_year_scores = risk_analyzer.get_risk_scores(selected_ja_code, previous_year)
+                            if previous_year_scores:
+                                risk_assessment['previous_year_scores'] = previous_year_scores
+                                risk_assessment['has_comparison'] = True
+                                logger.debug(f"前年度リスクスコアを取得しました: {previous_year_scores}")
+                    except Exception as e:
+                        logger.warning(f"前年度リスクデータの取得に失敗: {e}")
+                else:
+                    # No real analysis data exists
+                    risk_assessment = None
+                    logger.debug(f"リスク評価データが存在しません: JA={selected_ja_code}, 年度={selected_year}")
+            else:
+                risk_assessment = None
+        
+        # Get high risk issues
+        risk_issues = []
+        if risk_assessment and risk_assessment.get('status') == 'success':
+            risk_issues = RiskAnalyzer.get_risk_issues(selected_ja_code, selected_year)
+        
+        return render_template(
+            'index.html',
+            jas=jas,
+            selected_ja_code=selected_ja_code,
+            selected_year=selected_year,
+            all_years=all_years,  # 年度リストを追加
+            data_availability=data_availability,
+            risk_assessment=risk_assessment,
+            risk_issues=risk_issues
+        )
+    
+    @app.route('/select_ja', methods=['POST'])
+    def select_ja():
+        """Handle JA and year selection"""
+        ja_code = request.form.get('ja_code')
+        year = request.form.get('year')
+        # デフォルトのリダイレクト先をダッシュボードに変更
+        redirect_url = request.form.get('redirect_url') or url_for('index')
+        
+        logger.debug(f"JA選択リクエスト: ja_code={ja_code}, year={year}, redirect_url={redirect_url}")
+        
+        try:
+            # Handle new JA registration
+            if ja_code == 'new':
+                new_ja_code = request.form.get('new_ja_code')
+                new_ja_name = request.form.get('new_ja_name')
+                new_prefecture = request.form.get('new_prefecture')
+                
+                if not new_ja_code or not new_ja_name or not new_prefecture:
+                    flash('新規JA登録には、JAコード、JA名、都道府県が必要です。', 'danger')
+                    return redirect(redirect_url)
+                
+                # Check if JA with this code already exists
+                existing_ja = JA.query.filter_by(ja_code=new_ja_code).first()
+                if existing_ja:
+                    flash(f'JAコード "{new_ja_code}" は既に登録されています。', 'danger')
+                    return redirect(redirect_url)
+                
+                # Create new JA record
+                new_ja = JA(
+                    ja_code=new_ja_code,
+                    name=new_ja_name,
+                    prefecture=new_prefecture,
+                    year=int(year),
+                    available_data='',
+                    last_updated=datetime.utcnow()
+                )
+                db.session.add(new_ja)
+                db.session.commit()
+                
+                # Update ja_code to new code for processing
+                ja_code = new_ja_code
+                flash(f'新規JA "{new_ja_name}" が登録されました。', 'success')
+            
+            # JAコードの検証
+            if ja_code == 'None' or ja_code is None:
+                flash('有効なJAコードを選択してください。', 'danger')
+                return redirect(redirect_url)
+            
+            # セッションを更新する前にログ出力
+            logger.debug(f"セッション更新前: ja_code={session.get('selected_ja_code')}, year={session.get('selected_year')}")
+            
+            # Update session with selected JA and year
+            if ja_code:
+                session['selected_ja_code'] = ja_code
+                logger.debug(f"JAコードをセッションに設定: {ja_code}")
+            
+            if year:
+                try:
+                    year_int = int(year)
+                    # 年度を2021と2022のみに制限
+                    if year_int not in [2021, 2022]:
+                        flash('年度は2021または2022を選択してください。', 'danger')
+                        return redirect(redirect_url)
+                    session['selected_year'] = year_int
+                    logger.debug(f"年度をセッションに設定: {year}")
+                except ValueError:
+                    flash('有効な年度を入力してください。', 'danger')
+                    return redirect(redirect_url)
+                
+            # セッション更新後のログ出力
+            logger.debug(f"セッション更新後: ja_code={session.get('selected_ja_code')}, year={session.get('selected_year')}")
+            
+            flash('JAと会計年度が選択されました。', 'success')
+            
+        except Exception as e:
+            logger.error(f"Error in JA selection: {str(e)}")
+            flash(f'エラーが発生しました: {str(e)}', 'danger')
+        
+        # リダイレクト先を確認
+        logger.debug(f"リダイレクト先: {redirect_url}")
+        return redirect(redirect_url)
+    
+    @app.route('/data_import')
+    def data_import():
+        """Data import page"""
+        jas = JA.query.all()
+        
+        # Get selected JA and year from session or use first available
+        selected_ja_code = session.get('selected_ja_code')
+        selected_year = session.get('selected_year')
+        
+        if not selected_ja_code and jas:
+            selected_ja_code = jas[0].ja_code
+        
+        if not selected_year and jas:
+            selected_year = jas[0].year
+        
+        # Get data availability for the selected JA and year
+        data_availability = {
+            'bs': False,
+            'pl': False,
+            'cf': False
+        }
+        
+        if selected_ja_code and selected_year:
+            # 選択されたJAと年度に基づいて各財務データの有無をCSVDataテーブルから確認
+            bs_data = CSVData.query.filter_by(
+                ja_code=selected_ja_code, 
+                year=selected_year, 
+                file_type='bs'
+            ).first()
+            
+            pl_data = CSVData.query.filter_by(
+                ja_code=selected_ja_code, 
+                year=selected_year, 
+                file_type='pl'
+            ).first()
+            
+            cf_data = CSVData.query.filter_by(
+                ja_code=selected_ja_code, 
+                year=selected_year, 
+                file_type='cf'
+            ).first()
+            
+            data_availability['bs'] = bs_data is not None
+            data_availability['pl'] = pl_data is not None
+            data_availability['cf'] = cf_data is not None
+            
+            # デバッグログ
+            logger.debug(f"データ可用性確認: JA={selected_ja_code}, 年度={selected_year}, BS={data_availability['bs']}, PL={data_availability['pl']}, CF={data_availability['cf']}")
+        
+        return render_template(
+            'data_import.html',
+            jas=jas,
+            selected_ja_code=selected_ja_code,
+            selected_year=selected_year,
+            data_availability=data_availability
+        )
+    
+    @app.route('/upload_data', methods=['POST'])
+    def upload_data():
+        """Handle file upload and data import"""
+        try:
+            file = request.files.get('file')
+            ja_code = request.form.get('ja_code')
+            year = request.form.get('year', datetime.now().year)
+            file_type = request.form.get('file_type')
+            
+            if not file or not year or not file_type:
+                flash('必須項目が不足しています。', 'danger')
+                return redirect(url_for('data_import'))
+                
+            # JAコードの検証 - "None"が文字列として渡された場合の対応
+            if ja_code == 'None' or ja_code is None:
+                flash('有効なJAコードを選択してください。', 'danger')
+                return redirect(url_for('data_import'))
+            
+            # Handle new JA registration
+            if ja_code == 'new':
+                new_ja_code = request.form.get('new_ja_code')
+                new_ja_name = request.form.get('new_ja_name')
+                new_prefecture = request.form.get('new_prefecture')
+                
+                if not new_ja_code or not new_ja_name or not new_prefecture:
+                    flash('新規JA登録には、JAコード、JA名、都道府県が必要です。', 'danger')
+                    return redirect(url_for('data_import'))
+                
+                # Check if JA with this code already exists
+                existing_ja = JA.query.filter_by(ja_code=new_ja_code).first()
+                if existing_ja:
+                    flash(f'JAコード "{new_ja_code}" は既に登録されています。', 'danger')
+                    return redirect(url_for('data_import'))
+                
+                # Create new JA record
+                new_ja = JA(
+                    ja_code=new_ja_code,
+                    name=new_ja_name,
+                    prefecture=new_prefecture,
+                    year=int(year),
+                    available_data='',
+                    last_updated=datetime.utcnow()
+                )
+                db.session.add(new_ja)
+                db.session.commit()
+                
+                # Update ja_code to new code for file processing
+                ja_code = new_ja_code
+                flash(f'新規JA "{new_ja_name}" が登録されました。', 'success')
+            
+            # Validate file
+            valid, error_message = DataProcessor.validate_file(file)
+            if not valid:
+                flash(f'ファイルエラー: {error_message}', 'danger')
+                return redirect(url_for('data_import'))
+            
+            # Process file
+            success, message, row_count = DataProcessor.process_csv(file, ja_code, int(year), file_type)
+            
+            if success:
+                flash(f'データ取込成功: {message}', 'success')
+                # Store JA and year in session for convenience
+                session['selected_ja_code'] = ja_code
+                session['selected_year'] = int(year)
+            else:
+                flash(f'データ取込エラー: {message}', 'danger')
+            
+            return redirect(url_for('data_import'))
+            
+        except Exception as e:
+            logger.error(f"Error uploading data: {str(e)}")
+            flash(f'エラーが発生しました: {str(e)}', 'danger')
+            return redirect(url_for('data_import'))
+    
+    @app.route('/data_management')
+    def data_management():
+        """Data management page"""
+        jas = JA.query.all()
+        
+        # Get selected JA and year from session or use first available
+        selected_ja_code = session.get('selected_ja_code')
+        selected_year = session.get('selected_year')
+        
+        if not selected_ja_code and jas:
+            selected_ja_code = jas[0].ja_code
+        
+        if not selected_year and jas:
+            selected_year = jas[0].year
+        
+        # Get selected file type
+        file_type = request.args.get('file_type', 'bs')
+        
+        # Get CSV data for display
+        csv_data = None
+        if selected_ja_code and selected_year:
+            csv_data = CSVData.query.filter_by(
+                ja_code=selected_ja_code,
+                year=selected_year,
+                file_type=file_type
+            ).order_by(CSVData.row_number).all()
+        
+        # Get mapping statistics
+        mapping_stats = {
+            'total': 0,
+            'mapped': 0,
+            'unmapped': 0,
+            'percent_mapped': 0
+        }
+        
+        if csv_data:
+            mapping_stats['total'] = len(csv_data)
+            mapping_stats['mapped'] = sum(1 for d in csv_data if d.is_mapped)
+            mapping_stats['unmapped'] = mapping_stats['total'] - mapping_stats['mapped']
+            
+            if mapping_stats['total'] > 0:
+                mapping_stats['percent_mapped'] = (mapping_stats['mapped'] / mapping_stats['total']) * 100
+        
+        return render_template(
+            'data_management.html',
+            jas=jas,
+            selected_ja_code=selected_ja_code,
+            selected_year=selected_year,
+            file_type=file_type,
+            csv_data=csv_data,
+            mapping_stats=mapping_stats
+        )
+    
+    @app.route('/delete_data', methods=['POST'])
+    def delete_data():
+        """Delete CSV data"""
+        try:
+            ja_code = request.form.get('ja_code')
+            year = request.form.get('year')
+            file_type = request.form.get('file_type')
+            
+            if not ja_code or not year or not file_type:
+                flash('必須項目が不足しています。', 'danger')
+                return redirect(url_for('data_management', file_type=file_type or 'bs'))
+            
+            # まず、関連する分析結果があれば削除する
+            # Analysis Results might have references to standard account balances
+            analysis_results = AnalysisResult.query.filter_by(
+                ja_code=ja_code,
+                year=int(year)
+            ).all()
+            
+            for result in analysis_results:
+                logger.info(f"削除対象の分析結果: {result.id}")
+                db.session.delete(result)
+            
+            # ここで一度コミットして分析結果の削除を確定する
+            db.session.commit()
+            
+            # 削除順序を明確にするため、各ステップで別々にコミットする
+            
+            # 1. 標準勘定科目残高を先に削除
+            standard_balances = StandardAccountBalance.query.filter_by(
+                ja_code=ja_code,
+                year=int(year),
+                statement_type=file_type
+            ).all()
+            
+            for balance in standard_balances:
+                logger.info(f"削除対象の標準勘定科目残高: {balance.standard_account_code}")
+                db.session.delete(balance)
+            
+            db.session.commit()
+            
+            # 2. 勘定科目マッピングを削除
+            account_mappings = AccountMapping.query.filter_by(
+                ja_code=ja_code,
+                financial_statement=file_type
+            ).all()
+            
+            for mapping in account_mappings:
+                logger.info(f"削除対象のマッピング: {mapping.original_account_name} -> {mapping.standard_account_code}")
+                db.session.delete(mapping)
+            
+            db.session.commit()
+            
+            # 3. CSVデータを削除
+            csv_data_query = CSVData.query.filter_by(
+                ja_code=ja_code,
+                year=int(year),
+                file_type=file_type
+            )
+            
+            # 件数を取得してからバルク削除を行う
+            csv_count = csv_data_query.count()
+            logger.info(f"削除対象のCSVデータ: {csv_count}件")
+            
+            # バルク削除でパフォーマンスを向上
+            csv_data_query.delete(synchronize_session=False)
+            
+            db.session.commit()
+            
+            # 4. JA記録の利用可能データフィールドを更新
+            ja_record = JA.query.filter_by(ja_code=ja_code, year=int(year)).first()
+            if ja_record:
+                available_data_list = ja_record.available_data.split(',')
+                if file_type in available_data_list:
+                    available_data_list.remove(file_type)
+                    ja_record.available_data = ','.join(available_data_list)
+            
+            db.session.commit()
+            
+            flash(f'{file_type.upper()}データが削除されました。', 'success')
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error deleting data: {str(e)}")
+            flash(f'データ削除中にエラーが発生しました: {str(e)}', 'danger')
+        
+        return redirect(url_for('data_management', file_type=file_type or 'bs'))
+    
+    @app.route('/mapping')
+    def mapping():
+        """Account mapping page"""
+        jas = JA.query.all()
+        
+        # Get selected JA and year from URL parameters first, then session, or use first available
+        url_ja_code = request.args.get('ja_code')
+        url_year = request.args.get('year')
+        
+        selected_ja_code = url_ja_code or session.get('selected_ja_code')
+        selected_year = url_year or session.get('selected_year')
+        
+        # Convert year to integer if it's a string
+        if selected_year and isinstance(selected_year, str):
+            try:
+                selected_year = int(selected_year)
+            except ValueError:
+                selected_year = None
+        
+        if not selected_ja_code and jas:
+            selected_ja_code = jas[0].ja_code
+        
+        if not selected_year and jas:
+            selected_year = jas[0].year
+        
+        # Update session with the current selections
+        if selected_ja_code:
+            session['selected_ja_code'] = selected_ja_code
+        if selected_year:
+            session['selected_year'] = selected_year
+        
+        # Get selected file type and view mode
+        file_type = request.args.get('file_type', 'bs')
+        show_all = request.args.get('show_all', 'false').lower() == 'true'
+        
+        # Get all CSV data for the selected JA/year/file_type
+        all_accounts = []
+        if show_all and selected_ja_code and selected_year:
+            all_accounts = CSVData.query.filter_by(
+                ja_code=selected_ja_code,
+                year=selected_year,
+                file_type=file_type
+            ).order_by(CSVData.row_number).all()
+        
+        # Get unmapped accounts if not showing all
+        unmapped_accounts = []
+        if not show_all and selected_ja_code and selected_year:
+            # 直接クエリを使用して未マッピングのアカウントを取得（パフォーマンス向上と重複排除）
+            unmapped_accounts = CSVData.query.filter(
+                CSVData.ja_code == selected_ja_code,
+                CSVData.year == selected_year,
+                CSVData.file_type == file_type,
+                CSVData.is_mapped == False
+            ).order_by(CSVData.row_number).all()
+            
+            logger.info(f"直接クエリで取得した未マッピングアカウント数: {len(unmapped_accounts)}")
+            # 古い方法と比較
+            old_method_accounts = DataProcessor.get_unmapped_accounts(
+                selected_ja_code, selected_year, file_type
+            )
+            logger.info(f"従来の方法で取得した未マッピングアカウント数: {len(old_method_accounts)}")
+        
+        # キャッシュ対策をしつつ、より安全にSQLAlchemyのORMを使用して標準勘定科目を取得
+        # 新しいセッションを作成して標準勘定科目を取得
+        standard_accounts = db.session.query(StandardAccount).filter(
+            StandardAccount.financial_statement == file_type
+        ).order_by(
+            db.func.cast(StandardAccount.code, db.Integer)
+        ).all()
+        # デバッグ情報を出力
+        logger.info(f"取得した標準勘定科目数: {len(standard_accounts)}")
+        for account in standard_accounts[:5]:  # 最初の5件だけログ出力
+            logger.info(f"科目情報: code={account.code}, name={account.name}, parent_code={account.parent_code}")
+        
+        # Get existing mappings (標準勘定科目コード順に並び替え)
+        existing_mappings = []
+        if selected_ja_code:
+            existing_mappings = AccountMapping.query.filter_by(
+                ja_code=selected_ja_code,
+                financial_statement=file_type
+            ).order_by(AccountMapping.standard_account_code).all()
+            
+        # Create mapping lookup for all_accounts display
+        mapping_lookup = {}
+        for mapping in existing_mappings:
+            mapping_lookup[mapping.original_account_name] = mapping
+        
+        # 更新フラグを確認してデータベースセッションをリフレッシュ
+        refresh = request.args.get('refresh', 'false').lower() == 'true'
+        if refresh:
+            # セッションをクリアして再取得
+            db.session.expire_all()
+            
+            # 最新データを安全に取得
+            standard_accounts = db.session.query(StandardAccount).filter(
+                StandardAccount.financial_statement == file_type
+            ).order_by(
+                db.func.cast(StandardAccount.code, db.Integer)
+            ).all()
+            
+            flash('最新情報に更新しました。', 'success')
+        
+        # キャッシュ対策: レスポンスにキャッシュ防止ヘッダーを追加
+        response = make_response(render_template(
+            'mapping.html',
+            jas=jas,
+            selected_ja_code=selected_ja_code,
+            selected_year=selected_year,
+            file_type=file_type,
+            unmapped_accounts=unmapped_accounts,
+            standard_accounts=standard_accounts,
+            existing_mappings=existing_mappings,
+            all_accounts=all_accounts,
+            mapping_lookup=mapping_lookup,
+            show_all=show_all
+        ))
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+    
+    @app.route('/exact_match', methods=['GET', 'POST'])
+    def exact_match():
+        """
+        完全一致マッピングを実行（最小限の実装）
+        単一レコード処理で確実に動作させる
+        """
+        # GETリクエストの場合はマッピングページにリダイレクト
+        if request.method == 'GET':
+            return redirect(url_for('mapping', file_type='bs'))
+            
+        try:
+            ja_code = request.form.get('ja_code')
+            year = request.form.get('year')
+            file_type = request.form.get('file_type')
+            
+            if not ja_code or not year or not file_type:
+                flash('必須項目が不足しています。', 'danger')
+                return redirect(url_for('mapping', file_type='bs'))
+            
+            # 入力値の変換と検証
+            try:
+                year_int = int(year)
+            except (ValueError, TypeError):
+                logger.error(f"不正な年度値: {year}")
+                flash('年度の値が不正です。', 'danger')
+                return redirect(url_for('mapping', file_type=file_type or 'bs'))
+            
+            # file_typeの値を検証
+            if file_type not in ['bs', 'pl', 'cf']:
+                logger.error(f"不正なファイルタイプ: {file_type}")
+                flash('ファイルタイプの値が不正です。', 'danger')
+                return redirect(url_for('mapping', file_type='bs'))
+            
+            logger.info(f"完全一致マッピング実行（単一レコード）: ja_code={ja_code}, year={year_int}, file_type={file_type}")
+            
+            # 最小限の実装を使用して1つの勘定科目だけマッピング
+            try:
+                # 1件だけ処理する関数をインポート
+                from quick_mapping import quick_map_one_account
+                
+                # 1件のみマッピング
+                result = quick_map_one_account(ja_code, year_int, file_type)
+                
+                logger.info(f"単一レコードマッピング結果: {result}")
+                
+                if result["status"] == "success" or result["status"] == "updated":
+                    flash(result["message"], 'success')
+                    # 続けて次のレコードが処理されるようにマッピングページにリダイレクト
+                    return redirect(url_for('mapping', file_type=file_type))
+                elif result["status"] == "no_data":
+                    flash(result["message"], 'info')
+                elif result["status"] == "no_match":
+                    flash(result["message"], 'warning')
+                else:
+                    flash(f'エラー: {result.get("message", "不明なエラー")}', 'danger')
+                
+            except Exception as err:
+                logger.error(f"マッピング中にエラー: {str(err)}")
+                logger.error(traceback.format_exc())
+                flash(f'マッピング処理でエラーが発生しました: {str(err)}', 'danger')
+            
+            return redirect(url_for('mapping', file_type=file_type))
+            
+        except Exception as e:
+            logger.error(f"処理中に予期しないエラー: {str(e)}")
+            logger.error(traceback.format_exc())
+            flash(f'エラーが発生しました: {str(e)}', 'danger')
+            return redirect(url_for('mapping', file_type=file_type or 'bs'))
+            
+    @app.route('/batch_map', methods=['GET', 'POST'])
+    def batch_map():
+        """
+        完全一致マッピングを実行（直接SQL実行）
+        ORM・トランザクションをバイパスして直接処理
+        """
+        # GETリクエストの場合はマッピングページにリダイレクト
+        if request.method == 'GET':
+            return redirect(url_for('mapping', file_type='bs'))
+            
+        try:
+            ja_code = request.form.get('ja_code')
+            year = request.form.get('year')
+            file_type = request.form.get('file_type')
+            
+            if not ja_code or not year or not file_type:
+                flash('必須項目が不足しています。', 'danger')
+                return redirect(url_for('mapping', file_type='bs'))
+            
+            # 入力値の変換と検証
+            try:
+                year_int = int(year)
+            except (ValueError, TypeError):
+                logger.error(f"不正な年度値: {year}")
+                flash('年度の値が不正です。', 'danger')
+                return redirect(url_for('mapping', file_type=file_type or 'bs'))
+            
+            # file_typeの値を検証
+            if file_type not in ['bs', 'pl', 'cf']:
+                logger.error(f"不正なファイルタイプ: {file_type}")
+                flash('ファイルタイプの値が不正です。', 'danger')
+                return redirect(url_for('mapping', file_type='bs'))
+            
+            logger.info(f"直接SQLマッピング実行: ja_code={ja_code}, year={year_int}, file_type={file_type}")
+            
+            # 直接SQL処理による実装
+            try:
+                from direct_sql_mapping import execute_direct_mapping
+                
+                # 直接SQLで実行（バッチサイズを40件に設定）
+                result = execute_direct_mapping(ja_code, year_int, file_type, max_items=40)
+                
+                logger.info(f"直接SQLマッピング結果: {result}")
+                
+                if result["status"] == "success":
+                    mapped_count = result.get("mapped", 0)
+                    total_count = result.get("total", 0)
+                    
+                    message = f'直接SQL実行: {mapped_count}件のマッピングを作成しました（合計対象: {total_count}件）'
+                    flash(message, 'success')
+                    
+                elif result["status"] == "no_data":
+                    flash(result["message"], 'info')
+                else:
+                    flash(f'エラー: {result.get("message", "不明なエラー")}', 'danger')
+                
+            except Exception as err:
+                logger.error(f"直接SQL実行中にエラー: {str(err)}")
+                logger.error(traceback.format_exc())
+                flash(f'直接SQL実行でエラーが発生しました: {str(err)}', 'danger')
+            
+            return redirect(url_for('mapping', file_type=file_type))
+            
+        except Exception as e:
+            logger.error(f"処理中に予期しないエラー: {str(e)}")
+            logger.error(traceback.format_exc())
+            flash(f'エラーが発生しました: {str(e)}', 'danger')
+            return redirect(url_for('mapping', file_type=file_type or 'bs'))
+    
+    @app.route('/ai_map', methods=['GET', 'POST'])
+    def ai_map():
+        """自動マッピング実行（直接SQLマッピング）"""
+        try:
+            # リクエスト情報をデバッグログに出力
+            logger.info(f"🔎 自動マッピングリクエスト: method={request.method}, form={request.form}, args={request.args}")
+            
+            # POSTとGETのどちらからでもパラメータを取得できるようにする
+            ja_code = request.form.get('ja_code') or request.args.get('ja_code') or session.get('selected_ja_code')
+            year_str = request.form.get('year') or request.args.get('year') or str(session.get('selected_year'))
+            file_type = request.form.get('file_type') or request.args.get('file_type')
+            
+            # 信頼度しきい値の取得（デフォルト: 0.7）
+            try:
+                confidence_threshold = float(request.form.get('confidence_threshold', 0.7))
+                logger.info(f"📊 信頼度しきい値: {confidence_threshold}")
+            except ValueError as e:
+                logger.error(f"❌ 信頼度しきい値の変換エラー: {str(e)}")
+                confidence_threshold = 0.7  # デフォルト値を使用
+            confidence_threshold_str = request.form.get('confidence_threshold') or request.args.get('confidence_threshold', '0.7')
+            
+            logger.info(f"AI mapping received parameters: ja_code={ja_code}, year={year_str}, file_type={file_type}, confidence={confidence_threshold_str}")
+            
+            if not ja_code or not year_str or not file_type:
+                flash('必須項目が不足しています。JAコード、年度、ファイルタイプが必要です。', 'danger')
+                return redirect(url_for('mapping', file_type=file_type or 'cf'))
+            
+            try:
+                year = int(year_str)
+                confidence_threshold = float(confidence_threshold_str)
+            except (ValueError, TypeError) as e:
+                logger.error(f"Parameter conversion error: {str(e)}")
+                flash('年度は整数、信頼度は小数で指定してください。', 'danger')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            logger.info(f"AI mapping started for JA: {ja_code}, year: {year}, file_type: {file_type}, confidence: {confidence_threshold}")
+            
+            # AIマッピングを使用して自動マッピングを行う
+            logger.info("AIアカウントマッパーを使用して自動マッピングを実行します")
+            
+            try:
+                # AIAccountMapperを初期化
+                from ai_account_mapper import AIAccountMapper
+                mapper = AIAccountMapper()
+                logger.info("AIAccountMapperモジュールを正常にインポートしました")
+            except Exception as import_error:
+                logger.error(f"AIAccountMapperモジュールのインポートエラー: {str(import_error)}")
+                logger.error(traceback.format_exc())
+                flash(f'マッピングモジュールの読み込みに失敗しました: {str(import_error)}', 'danger')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            try:
+                # 利用可能な標準勘定科目の数をチェック
+                standard_accounts_count = StandardAccount.query.filter_by(financial_statement=file_type).count()
+                logger.info(f"Standard accounts for {file_type}: {standard_accounts_count}")
+                
+                if standard_accounts_count == 0:
+                    flash(f'{file_type.upper()}タイプの標準勘定科目が登録されていません。先に標準勘定科目を登録してください。', 'danger')
+                    return redirect(url_for('mapping', file_type=file_type))
+                
+                # 未マッピングの勘定科目数をチェック
+                unmapped_count = CSVData.query.filter_by(
+                    ja_code=ja_code, 
+                    year=year, 
+                    file_type=file_type, 
+                    is_mapped=False
+                ).count()
+                logger.info(f"未マッピングの勘定科目数: {unmapped_count}")
+            except Exception as check_error:
+                logger.error(f"データチェック中のエラー: {str(check_error)}")
+                logger.error(traceback.format_exc())
+                flash(f'データの確認中にエラーが発生しました: {str(check_error)}', 'danger')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            logger.info(f"Unmapped account count before proceeding: {unmapped_count}")
+            
+            if unmapped_count == 0:
+                flash(f'すべての勘定科目がすでにマッピングされています。AI処理は不要です。', 'success')
+                return redirect(url_for('mapping', file_type=file_type))
+                
+            # 直接SQLマッピングを実行して、勘定科目をマッピング
+            logger.info("🚀 直接SQLマッピングを実行")
+            try:
+                # パラメータの検証
+                if not ja_code or not year or not file_type:
+                    error_msg = "マッピングに必要な情報（JA、年度、ファイルタイプ）が不足しています"
+                    logger.error(f"❌ {error_msg}")
+                    flash(error_msg, 'danger')
+                    return redirect(url_for('mapping'))
+                
+                # パラメータのログ出力
+                logger.info(f"🚀 AIマッピング呼び出し: JA={ja_code}, 年度={year}, ファイルタイプ={file_type}, 信頼度閾値={confidence_threshold}")
+                
+                try:
+                    # マッピングを実行（AIアカウントマッパーを使用）
+                    result = mapper.batch_map_accounts(ja_code, int(year), file_type, confidence_threshold=confidence_threshold)
+                    
+                    # 結果の詳細ログ出力
+                    logger.info(f"✅ AIマッピング結果: {result}")
+                    
+                    # 結果を処理して適切なフラッシュメッセージを表示
+                    if result.get("status") == "error":
+                        # エラーの場合
+                        logger.error(f"❌ マッピングエラー: {result.get('message')}")
+                        flash(f'マッピング処理エラー: {result.get("message", "不明なエラー")}', 'danger')
+                        return redirect(url_for('mapping', file_type=file_type))
+                    elif result.get("status") == "success":
+                        # 成功の場合
+                        mapped_count = result.get("mapped", 0)
+                        total_count = result.get("total", 0)
+                        remaining_count = result.get("remaining", 0)  # 残り件数を直接取得
+                        logger.info(f"✅ マッピング成功: {mapped_count}件をマッピング（残り{remaining_count}件）")
+                        flash(f'マッピング完了: {mapped_count}件の勘定科目をマッピングしました。残り{remaining_count}件。', 'success')
+                        return redirect(url_for('mapping', file_type=file_type))
+                    elif result.get("status") == "no_data":
+                        # データがない場合
+                        logger.info("⚠️ マッピング対象データなし")
+                        flash('マッピング対象となる未マッピングの勘定科目がありません。', 'info')
+                        return redirect(url_for('mapping', file_type=file_type))
+                    elif result.get("status") == "no_match":
+                        # マッチするデータがない場合
+                        logger.info("⚠️ マッチする勘定科目なし")
+                        flash('マッピング可能な類似勘定科目が見つかりませんでした。手動でマッピングしてください。', 'warning')
+                        return redirect(url_for('mapping', file_type=file_type))
+                    else:
+                        # その他の状態
+                        logger.warning(f"⚠️ 未定義の結果状態: {result.get('status')}")
+                        flash(f'マッピング処理は完了しましたが、結果は不明です: {result.get("message", "詳細不明")}', 'info')
+                        return redirect(url_for('mapping', file_type=file_type))
+                except ValueError as ve:
+                    # 数値変換エラー
+                    error_msg = f"パラメータエラー: 年度が正しい数値ではありません: {year}"
+                    logger.error(f"❌ {error_msg}")
+                    flash(error_msg, 'danger')
+                    return redirect(url_for('mapping'))
+            except Exception as mapping_exec_error:
+                logger.error(f"❌ 直接SQLマッピング実行エラー: {str(mapping_exec_error)}")
+                logger.error(traceback.format_exc())
+                flash(f'マッピング処理の実行中にエラーが発生しました: {str(mapping_exec_error)}', 'danger')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            # マッピング後の未マッピング勘定科目数を取得
+            updated_unmapped_count = CSVData.query.filter_by(
+                ja_code=ja_code, 
+                year=year, 
+                file_type=file_type, 
+                is_mapped=False
+            ).count()
+            
+            logger.info(f"マッピング後の未マッピング件数: {updated_unmapped_count}")
+            
+            if updated_unmapped_count == 0:
+                flash('すべての勘定科目のマッピングが完了しました。', 'success')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            # 引き続き未マッピングの勘定科目がある場合
+            logger.info(f"未マッピングの勘定科目が{updated_unmapped_count}件残っています")
+            try:
+                # 結果を確認
+                final_unmapped_count = CSVData.query.filter_by(
+                    ja_code=ja_code, 
+                    year=year, 
+                    file_type=file_type, 
+                    is_mapped=False
+                ).count()
+                
+                # マッピング実行結果を明確に表示（より目立つよう改善）
+                mapped_count = unmapped_count - final_unmapped_count
+                
+                if mapped_count > 0:
+                    # 成功メッセージ - 処理対象と処理成功件数を表示
+                    logger.info(f"🟢 マッピング成功: {mapped_count}件（処理対象: {unmapped_count}件）") 
+                    flash(f'✅ マッピング成功: {mapped_count}件の勘定科目を自動マッピングしました（処理対象: {unmapped_count}件）', 'success')
+                    
+                    # 標準残高テーブルを再計算する必要があることを通知
+                    flash(f'👉 勘定科目残高の再計算を実行してください', 'info')
+                else:
+                    # 処理は正常に完了したが結果がない場合
+                    logger.info(f"🟡 マッピング結果なし（処理対象: {unmapped_count}件）")
+                    flash(f'⚠️ マッピングが見つかりません: 類似する勘定科目が見つかりませんでした（処理対象: {unmapped_count}件）', 'warning')
+                
+                # 引き続き未マッピングの科目がある場合は手動マッピングを推奨
+                if final_unmapped_count > 0:
+                    # 残りの勘定科目を手動でマッピングするよう推奨
+                    logger.info(f"🔵 残り: {final_unmapped_count}件")
+                    flash(f'📝 残り {final_unmapped_count}件: 手動でマッピングが必要です。各科目の「マッピング」ボタンをご利用ください。', 'info')
+                else:
+                    # すべてマッピング完了の場合
+                    logger.info("🟢 すべての勘定科目がマッピング済みです。")
+                    flash('🎉 マッピング完了: すべての勘定科目のマッピングが完了しました！', 'success')
+                
+            except Exception as mapping_error:
+                logger.error(f"マッピング処理中にエラー: {str(mapping_error)}")
+                logger.error(traceback.format_exc())  # スタックトレースを記録
+                flash(f'マッピング処理中にエラーが発生しました: {str(mapping_error)}', 'danger')
+            
+            return redirect(url_for('mapping', file_type=file_type))
+            
+        except Exception as e:
+            logger.error(f"Error in AI mapping: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            flash(f'エラーが発生しました: {str(e)}', 'danger')
+            return redirect(url_for('mapping', file_type=file_type or 'cf'))
+    
+    @app.route('/auto_map', methods=['GET', 'POST'])
+    def auto_map():
+        """完全一致とAIマッピングを順番に実行"""
+        # GETリクエストの場合はマッピング画面にリダイレクト
+        if request.method == 'GET':
+            return redirect(url_for('mapping', file_type=request.args.get('file_type', 'bs')))
+        try:
+            ja_code = request.form.get('ja_code')
+            year_str = request.form.get('year')
+            file_type = request.form.get('file_type')
+            
+            if not ja_code or not year_str or not file_type:
+                flash('必須項目が不足しています。', 'danger')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            try:
+                year = int(year_str)
+            except ValueError:
+                flash('年度は整数で指定してください。', 'danger')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            logger.info(f"Starting auto mapping process for JA: {ja_code}, year: {year}, file_type: {file_type}")
+            
+            # 一括マッピングを実行（完全一致→AI→類似度の順に）
+            try:
+                # バッチサイズを設定（5件ずつ処理）
+                batch_size = 5
+                
+                # フォームから信頼度閾値を取得（デフォルト：0.5）
+                confidence_threshold_str = request.form.get('confidence_threshold', '0.5')
+                try:
+                    confidence_threshold = float(confidence_threshold_str)
+                except (ValueError, TypeError):
+                    confidence_threshold = 0.5  # デフォルト値
+                
+                logger.info(f"一括マッピングを実行します（バッチサイズ: {batch_size}件、信頼度閾値: {confidence_threshold}）")
+                
+                # AIアカウントマッパーを使用
+                try:
+                    logger.info("AI支援マッピングを開始します")
+                    # AIマッパー初期化
+                    from ai_account_mapper import AIAccountMapper, auto_map_accounts
+                    
+                    # AI支援マッピング実行（自動的に完全一致→AIの順で処理）
+                    result = auto_map_accounts(
+                        ja_code=ja_code,
+                        year=year,
+                        file_type=file_type,
+                        requested_tasks=["exact_match", "ai_mapping", "string_similarity"]
+                    )
+                    logger.info(f"AI支援マッピング結果: {result}")
+                    
+                    if not result or "status" not in result:
+                        # バックアップとして直接SQLマッピングを使用
+                        logger.warning("AI支援マッピングが失敗したため、直接SQLマッピングを使用します")
+                        from direct_sql_mapping import execute_direct_mapping
+                        
+                        # 直接SQLマッピングを実行（バッチサイズを指定）
+                        result = execute_direct_mapping(
+                            ja_code=ja_code, 
+                            year=year, 
+                            file_type=file_type, 
+                            max_items=40  # 大きめのバッチサイズで処理
+                        )
+                except Exception as ai_err:
+                    logger.error(f"AI支援マッピングエラー: {str(ai_err)}")
+                    # エラーが発生した場合も直接SQLマッピングを使用
+                    from direct_sql_mapping import execute_direct_mapping
+                    
+                    # 直接SQLマッピングを実行（バッチサイズを指定）
+                    result = execute_direct_mapping(
+                        ja_code=ja_code, 
+                        year=year, 
+                        file_type=file_type, 
+                        max_items=40  # 大きめのバッチサイズで処理
+                    )
+                
+                logger.info(f"一括マッピング結果: {result}")
+                
+                if result and 'error' in result.get('status', '').lower():
+                    flash(f'マッピングエラー: {result.get("message", "エラーが発生しました")}', 'danger')
+                elif result:
+                    mapped = result.get('mapped', 0)
+                    total = result.get('total', 0)
+                    
+                    message = f'一括マッピング完了: 合計{total}件中、{mapped}件処理'
+                    flash(message, 'success')
+                    
+                    logger.info(f"自動マッピング完了: 合計={total}, マッピング={mapped}")
+                else:
+                    flash('マッピング処理で不明な結果が返されました。', 'warning')
+                    
+            except Exception as sql_error:
+                logger.error(f"Error in direct SQL mapping: {str(sql_error)}")
+                flash(f'マッピング処理中にエラーが発生しました: {str(sql_error)}', 'danger')
+            
+            return redirect(url_for('mapping', file_type=file_type))
+            
+        except Exception as e:
+            logger.error(f"Error in auto mapping: {str(e)}")
+            flash(f'エラーが発生しました: {str(e)}', 'danger')
+            return redirect(url_for('mapping', file_type=file_type or 'bs'))
+    
+    @app.route('/reference_map', methods=['POST'])
+    def reference_map():
+        """他JAを参照したマッピングを実行するエンドポイント"""
+        try:
+            # リクエストパラメータを取得
+            ja_code = request.form.get('ja_code', session.get('selected_ja_code'))
+            year = int(request.form.get('year', session.get('selected_year', 2025)))
+            file_type = request.form.get('file_type', 'bs')
+            confidence_threshold = float(request.form.get('confidence_threshold', 0.5))
+            use_top_jas = request.form.get('use_top_jas', 'true') == 'true'
+            
+            # セッションに選択値を保存
+            session['selected_ja_code'] = ja_code
+            session['selected_year'] = year
+            
+            # ログ出力
+            logger.info(f"参照マッピング開始: JA={ja_code}, 年度={year}, タイプ={file_type}, 信頼度={confidence_threshold}, トップJA使用={use_top_jas}")
+            
+            # 処理実行
+            from reference_mapping import apply_reference_mapping, get_reference_ja_list, apply_direct_pl_mapping
+            
+            # PLデータの場合は直接マッピングも実行
+            direct_mapping_result = {"mapped": 0, "skipped": 0}
+            if file_type == 'pl':
+                logger.info(f"PLデータの直接マッピングを実行: JA={ja_code}, 年度={year}")
+                direct_mapping_result = apply_direct_pl_mapping(
+                    target_ja_code=ja_code,
+                    target_year=year
+                )
+                logger.info(f"PLデータの直接マッピング結果: {direct_mapping_result}")
+            
+            # 参照するJAリストを取得
+            reference_ja_list = None
+            if use_top_jas:
+                reference_ja_list = get_reference_ja_list()
+                logger.info(f"参照JAリスト: {reference_ja_list}")
+            
+            # 参照マッピングを実行
+            result = apply_reference_mapping(
+                target_ja_code=ja_code, 
+                target_year=year, 
+                file_type=file_type,
+                confidence_threshold=confidence_threshold,
+                reference_ja_list=reference_ja_list
+            )
+            
+            # PLデータの場合は直接マッピングの結果を合算
+            if file_type == 'pl':
+                result['mapped'] += direct_mapping_result['mapped']
+                result['skipped'] = result['skipped']  # スキップ数は合算しない（同じ科目の可能性があるため）
+            
+            # 処理結果に基づいてメッセージを表示
+            if result['status'] == 'success':
+                flash(f"参照マッピングが完了しました: {result['mapped']}件マッピング, {result['skipped']}件スキップ", 'success')
+            else:
+                flash(f"参照マッピング中にエラーが発生しました: {result['message']}", 'danger')
+            
+            # 元のマッピングページにリダイレクト
+            return redirect(url_for('mapping', file_type=file_type))
+            
+        except Exception as e:
+            logger.error(f"参照マッピング中にエラーが発生しました: {str(e)}")
+            logger.error(traceback.format_exc())
+            flash(f"参照マッピング中にエラーが発生しました: {str(e)}", 'danger')
+            return redirect(url_for('mapping'))
+
+    @app.route('/manual_map', methods=['POST'])
+    def manual_map():
+        """Perform manual mapping of an account"""
+        try:
+            ja_code = request.form.get('ja_code')
+            year = request.form.get('year')
+            file_type = request.form.get('file_type')
+            account_id = request.form.get('account_id')
+            standard_account_code = request.form.get('standard_account_code')
+            
+            if not ja_code or not year or not file_type or not account_id or not standard_account_code:
+                flash('必須項目が不足しています。', 'danger')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            # Get the standard account
+            standard_account = StandardAccount.query.filter_by(code=standard_account_code).first()
+            
+            if not standard_account:
+                flash('標準アカウントが見つかりませんでした。', 'danger')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            # Check if it's an existing mapped account or a new account
+            if 'existing_' in account_id:
+                # This is updating an existing mapping
+                original_account_name = account_id.replace('existing_', '')
+                
+                # Find existing mapping
+                mapping = AccountMapping.query.filter_by(
+                    ja_code=ja_code,
+                    original_account_name=original_account_name,
+                    financial_statement=file_type
+                ).first()
+                
+                if mapping:
+                    # Update existing mapping
+                    mapping.standard_account_code = standard_account_code
+                    mapping.standard_account_name = standard_account.name
+                    mapping.confidence = 1.0  # Manual mapping has full confidence
+                    mapping.rationale = "手動マッピング（更新）"
+                    
+                    db.session.commit()
+                    flash(f'アカウント "{original_account_name}" のマッピングを "{standard_account.name}" に更新しました。', 'success')
+                else:
+                    flash(f'マッピングレコードが見つかりませんでした: {original_account_name}', 'danger')
+            else:
+                # This is mapping a new account
+                # Get the account (安全に整数変換してから取得)
+                try:
+                    # account_idを整数に変換
+                    account_id_int = int(account_id)
+                    account = CSVData.query.filter_by(id=account_id_int).first()
+                    
+                    if not account:
+                        flash('アカウントが見つかりませんでした。', 'danger')
+                        return redirect(url_for('mapping', file_type=file_type))
+                except (ValueError, TypeError) as e:
+                    # 整数変換できない場合やその他のエラー
+                    logger.error(f"Invalid account_id: {account_id}, Error: {str(e)}")
+                    flash('無効なアカウントIDです。', 'danger')
+                    return redirect(url_for('mapping', file_type=file_type))
+                
+                # Create mapping record
+                mapping = AccountMapping.query.filter_by(
+                    ja_code=ja_code,
+                    original_account_name=account.account_name,
+                    financial_statement=file_type
+                ).first()
+                
+                if mapping:
+                    # Update existing mapping
+                    mapping.standard_account_code = standard_account_code
+                    mapping.standard_account_name = standard_account.name
+                    mapping.confidence = 1.0  # Manual mapping has full confidence
+                    mapping.rationale = "手動マッピング"
+                else:
+                    # Create new mapping
+                    new_mapping = AccountMapping()
+                    new_mapping.ja_code = ja_code
+                    new_mapping.original_account_name = account.account_name
+                    new_mapping.standard_account_code = standard_account_code
+                    new_mapping.standard_account_name = standard_account.name
+                    new_mapping.financial_statement = file_type
+                    new_mapping.confidence = 1.0
+                    new_mapping.rationale = "手動マッピング"
+                    db.session.add(new_mapping)
+                
+                # Update account status
+                account.is_mapped = True
+                
+                db.session.commit()
+                flash(f'アカウント "{account.account_name}" を "{standard_account.name}" にマッピングしました。', 'success')
+            
+            return redirect(url_for('mapping', file_type=file_type))
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error in manual mapping: {str(e)}")
+            flash(f'エラーが発生しました: {str(e)}', 'danger')
+            return redirect(url_for('mapping', file_type=file_type or 'bs'))
+    
+    @app.route('/delete_mapping', methods=['POST'])
+    def delete_mapping():
+        """マッピングを削除して未マッピング状態に戻す"""
+        try:
+            ja_code = request.form.get('ja_code')
+            year = request.form.get('year')
+            file_type = request.form.get('file_type')
+            original_account_name = request.form.get('original_account_name')
+            
+            if not ja_code or not year or not file_type or not original_account_name:
+                flash('必須項目が不足しています。', 'danger')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            # マッピングレコードを削除
+            mapping = AccountMapping.query.filter_by(
+                ja_code=ja_code,
+                original_account_name=original_account_name,
+                financial_statement=file_type
+            ).first()
+            
+            if not mapping:
+                flash('マッピングが見つかりませんでした。', 'warning')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            # 対応するCSVデータを見つけて未マッピング状態に戻す
+            csv_data = CSVData.query.filter_by(
+                ja_code=ja_code,
+                year=int(year),
+                file_type=file_type,
+                account_name=original_account_name
+            ).all()
+            
+            for data in csv_data:
+                data.is_mapped = False
+            
+            # マッピングを削除
+            db.session.delete(mapping)
+            db.session.commit()
+            
+            flash(f'「{original_account_name}」のマッピングを削除しました。', 'success')
+            return redirect(url_for('mapping', file_type=file_type))
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error in delete mapping: {str(e)}")
+            flash(f'エラーが発生しました: {str(e)}', 'danger')
+            return redirect(url_for('mapping', file_type=file_type or 'bs'))
+            
+    @app.route('/delete_all_mappings', methods=['POST'])
+    def delete_all_mappings():
+        """特定のJA、年度、財務諸表タイプのマッピングをすべて削除"""
+        try:
+            ja_code = request.form.get('ja_code')
+            year = request.form.get('year')
+            file_type = request.form.get('file_type')
+            
+            if not ja_code or not year or not file_type:
+                flash('必須項目が不足しています。', 'danger')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            # マッピング対象のCSVデータを取得
+            mappings = AccountMapping.query.filter_by(
+                ja_code=ja_code,
+                financial_statement=file_type
+            ).all()
+            
+            if not mappings:
+                flash('削除対象のマッピングが見つかりませんでした。', 'warning')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            # 各マッピングに対応するCSVデータを未マッピング状態に戻す
+            mapping_count = 0
+            
+            for mapping in mappings:
+                csv_data = CSVData.query.filter_by(
+                    ja_code=ja_code,
+                    year=int(year),
+                    file_type=file_type,
+                    account_name=mapping.original_account_name
+                ).all()
+                
+                # CSVデータの is_mapped フラグを更新
+                for data in csv_data:
+                    data.is_mapped = False
+                
+                # マッピング自体は後で一括削除するのでここでは削除しない
+                mapping_count += 1
+            
+            # 全マッピングを一括削除
+            deleted_count = AccountMapping.query.filter_by(
+                ja_code=ja_code,
+                financial_statement=file_type
+            ).delete()
+            
+            db.session.commit()
+            
+            flash(f'{file_type.upper()}の勘定科目マッピング {deleted_count}件を一括削除しました。', 'success')
+            return redirect(url_for('mapping', file_type=file_type))
+            
+        except Exception as e:
+            logger.error(f'マッピング一括削除中にエラーが発生しました: {str(e)}')
+            flash(f'マッピングの一括削除に失敗しました: {str(e)}', 'danger')
+            db.session.rollback()
+            return redirect(url_for('mapping', file_type=file_type))
+    
+    @app.route('/finalize_mapping', methods=['POST'])
+    def finalize_mapping():
+        """Finalize mapping and create standard account balances"""
+        try:
+            ja_code = request.form.get('ja_code')
+            year = request.form.get('year')
+            file_type = request.form.get('file_type')
+            
+            if not ja_code or not year or not file_type:
+                flash('必須項目が不足しています。', 'danger')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            # Get all mapped CSV data
+            mapped_data = CSVData.query.filter_by(
+                ja_code=ja_code,
+                year=int(year),
+                file_type=file_type,
+                is_mapped=True
+            ).all()
+            
+            if not mapped_data:
+                flash('マッピングされたデータがありません。', 'warning')
+                return redirect(url_for('mapping', file_type=file_type))
+            
+            # Get account mappings
+            mappings = {}
+            for mapping in AccountMapping.query.filter_by(
+                ja_code=ja_code,
+                financial_statement=file_type
+            ).all():
+                mappings[mapping.original_account_name] = mapping
+            
+            # Process each mapped account
+            processed_count = 0
+            
+            for data in mapped_data:
+                mapping = mappings.get(data.account_name)
+                if not mapping:
+                    continue
+                
+                # Determine statement subtype based on file type and category
+                statement_subtype = "その他"
+                if file_type == "bs":
+                    category = data.category or ""  # Noneの場合は空文字列を使用
+                    if "資産" in category and "純資産" not in category:
+                        statement_subtype = "BS資産"
+                    elif "負債" in category:
+                        statement_subtype = "BS負債"
+                    elif "純資産" in category:
+                        statement_subtype = "BS純資産"
+                elif file_type == "pl":
+                    category = data.category or ""  # Noneの場合は空文字列を使用
+                    # PLの場合はカテゴリーの部分一致で判定
+                    if "収益" in category or "収入" in category or "売上" in category:
+                        statement_subtype = "PL収益"
+                    elif "費用" in category or "支出" in category or "原価" in category or "損失" in category:
+                        statement_subtype = "PL費用"
+                    else:
+                        # カテゴリーがなくてもPLならデフォルトでPL費用に分類（収益は上部、費用は下部に表示されることが多い）
+                        statement_subtype = "PL費用"
+                elif file_type == "cf":
+                    category = data.category or ""  # Noneの場合は空文字列を使用
+                    # CFの場合も詳細なカテゴリ分けを行う
+                    if category == "営業活動":
+                        statement_subtype = "CF営業活動"
+                    elif category == "投資活動":
+                        statement_subtype = "CF投資活動"
+                    elif category == "財務活動":
+                        statement_subtype = "CF財務活動"
+                    elif category == "現金及び現金同等物":
+                        statement_subtype = "CF現金同等物"
+                    else:
+                        # カテゴリーがわからない場合はCFのままとする
+                        statement_subtype = "CF"
+                
+                # Check if standard account balance record already exists
+                balance = StandardAccountBalance.query.filter_by(
+                    ja_code=ja_code,
+                    year=int(year),
+                    statement_type=file_type,
+                    standard_account_code=mapping.standard_account_code
+                ).first()
+                
+                if balance:
+                    # Update existing record
+                    balance.current_value = data.current_value
+                    balance.previous_value = data.previous_value
+                else:
+                    # Create new record - 引数渡しではなく属性設定で作成
+                    new_balance = StandardAccountBalance()
+                    new_balance.ja_code = ja_code
+                    new_balance.year = int(year)
+                    new_balance.statement_type = file_type
+                    new_balance.statement_subtype = statement_subtype
+                    new_balance.standard_account_code = mapping.standard_account_code
+                    new_balance.standard_account_name = mapping.standard_account_name
+                    new_balance.current_value = data.current_value
+                    new_balance.previous_value = data.previous_value
+                    db.session.add(new_balance)
+                
+                processed_count += 1
+            
+            db.session.commit()
+            flash(f'{processed_count}件のデータが標準勘定科目に変換されました。', 'success')
+            
+            return redirect(url_for('data_management', file_type=file_type))
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error finalizing mapping: {str(e)}")
+            flash(f'エラーが発生しました: {str(e)}', 'danger')
+            return redirect(url_for('mapping', file_type=file_type or 'bs'))
+    
+    @app.route('/edit_standard_account', methods=['POST'])
+    def edit_standard_account():
+        """標準勘定科目を編集する"""
+        try:
+            # フォームから情報を取得
+            original_code = request.form.get('original_code')
+            code = request.form.get('code')
+            name = request.form.get('name')
+            parent_code = request.form.get('parent_code', '')  # 上位科目コード（任意）
+            category = request.form.get('category')
+            financial_statement = request.form.get('financial_statement')
+            account_type = request.form.get('account_type')
+            display_order_str = request.form.get('display_order')
+            description = request.form.get('description')
+            
+            # 必須項目のバリデーション
+            if not original_code or not code or not name or not category or not financial_statement or not account_type:
+                flash('必須項目が不足しています。', 'danger')
+                return redirect(url_for('mapping', file_type=financial_statement))
+            
+            # コードの数値チェック
+            if not code.isdigit():
+                flash('勘定科目コードは数字のみ入力可能です。', 'danger')
+                return redirect(url_for('mapping', file_type=financial_statement))
+            
+            # 上位科目コードの検証（入力されている場合）
+            if parent_code and parent_code.strip():
+                # 自分自身を上位科目にはできない
+                if parent_code == code:
+                    flash('自分自身を上位科目にすることはできません。', 'danger')
+                    return redirect(url_for('mapping', file_type=financial_statement))
+                
+                # 上位科目が存在するか確認
+                parent_account = StandardAccount.query.filter_by(code=parent_code).first()
+                if not parent_account:
+                    flash(f'指定された上位科目（コード:{parent_code}）が見つかりません。', 'danger')
+                    return redirect(url_for('mapping', file_type=financial_statement))
+                
+                # 上位科目が同じ財務諸表タイプか確認
+                if parent_account.financial_statement != financial_statement:
+                    flash(f'上位科目は同じ財務諸表タイプ（{financial_statement}）である必要があります。', 'danger')
+                    return redirect(url_for('mapping', file_type=financial_statement))
+            else:
+                # 入力がない場合はNoneに設定
+                parent_code = None
+            
+            # 元の標準勘定科目を取得
+            original_account = StandardAccount.query.filter_by(code=original_code).first()
+            if not original_account:
+                flash(f'編集する標準勘定科目（コード:{original_code}）が見つかりません。', 'danger')
+                return redirect(url_for('mapping', file_type=financial_statement))
+            
+            # コードが変更されていて、新しいコードが既存のコードと重複しているか確認
+            if code != original_code:
+                existing_account = StandardAccount.query.filter_by(code=code).first()
+                if existing_account:
+                    flash(f'勘定科目コード {code} は既に使用されています。', 'danger')
+                    return redirect(url_for('mapping', file_type=financial_statement))
+            
+            # 表示順が省略された場合はコードを数値化して使用
+            if not display_order_str:
+                display_order = int(code)
+            else:
+                try:
+                    display_order = int(display_order_str)
+                except ValueError:
+                    flash('表示順は数値を入力してください。', 'danger')
+                    return redirect(url_for('mapping', file_type=financial_statement))
+            
+            # この科目がすでに他の科目の親科目になっているか確認
+            if code != original_code:  # コードが変更された場合のみ
+                child_accounts = StandardAccount.query.filter_by(parent_code=original_code).all()
+                
+                # コードが変更された場合、この科目を親として参照している子科目の親コードも更新
+                for child in child_accounts:
+                    logger.info(f"子科目 {child.code}（{child.name}）の親コードを {original_code} から {code} に更新します")
+                    child.parent_code = code
+            
+            # 標準勘定科目を更新
+            original_account.code = code
+            original_account.name = name
+            original_account.parent_code = parent_code
+            original_account.category = category
+            original_account.financial_statement = financial_statement
+            original_account.account_type = account_type
+            original_account.display_order = display_order
+            original_account.description = description or ''
+            
+            # データベースに保存
+            db.session.commit()
+            
+            flash(f'標準勘定科目「{name}（コード:{code}）」を更新しました。', 'success')
+            
+            # 詳細なログ記録
+            logger.info(f"Standard account updated: code={code}, name={name}, parent_code={parent_code}, financial_statement={financial_statement}")
+            
+            # リフレッシュフラグを追加して、強制的に再読み込みするよう指示
+            return redirect(url_for('mapping', file_type=financial_statement, refresh='true'))
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error updating standard account: {str(e)}")
+            flash(f'標準勘定科目の更新中にエラーが発生しました: {str(e)}', 'danger')
+            return redirect(url_for('mapping', file_type=financial_statement or 'bs'))
+            
+    @app.route('/add_standard_account', methods=['POST'])
+    def add_standard_account():
+        """標準勘定科目を追加する"""
+        try:
+            # フォームから情報を取得
+            code = request.form.get('code')
+            name = request.form.get('name')
+            parent_code = request.form.get('parent_code', '')  # 上位科目コード（任意）
+            category = request.form.get('category')
+            financial_statement = request.form.get('financial_statement')
+            account_type = request.form.get('account_type')
+            display_order_str = request.form.get('display_order')
+            description = request.form.get('description')
+            
+            # 必須項目のバリデーション
+            if not code or not name or not category or not financial_statement or not account_type:
+                flash('必須項目が不足しています。', 'danger')
+                return redirect(url_for('mapping', file_type=financial_statement))
+            
+            # コードの数値チェック
+            if not code.isdigit():
+                flash('勘定科目コードは数字のみ入力可能です。', 'danger')
+                return redirect(url_for('mapping', file_type=financial_statement))
+            
+            # 上位科目コードの検証（入力されている場合）
+            if parent_code and parent_code.strip():
+                # 自分自身を上位科目にはできない
+                if parent_code == code:
+                    flash('自分自身を上位科目にすることはできません。', 'danger')
+                    return redirect(url_for('mapping', file_type=financial_statement))
+                
+                # 上位科目が存在するか確認
+                parent_account = StandardAccount.query.filter_by(code=parent_code).first()
+                if not parent_account:
+                    flash(f'指定された上位科目（コード:{parent_code}）が見つかりません。', 'danger')
+                    return redirect(url_for('mapping', file_type=financial_statement))
+                
+                # 上位科目が同じ財務諸表タイプか確認
+                if parent_account.financial_statement != financial_statement:
+                    flash(f'上位科目は同じ財務諸表タイプ（{financial_statement}）である必要があります。', 'danger')
+                    return redirect(url_for('mapping', file_type=financial_statement))
+            else:
+                # 入力がない場合はNoneに設定
+                parent_code = None
+            
+            # 既存のコードと重複チェック
+            existing_account = StandardAccount.query.filter_by(code=code).first()
+            if existing_account:
+                flash(f'勘定科目コード {code} は既に使用されています。', 'danger')
+                return redirect(url_for('mapping', file_type=financial_statement))
+            
+            # 表示順が省略された場合はコードを数値化して使用
+            if not display_order_str:
+                display_order = int(code)
+            else:
+                try:
+                    display_order = int(display_order_str)
+                except ValueError:
+                    flash('表示順は数値を入力してください。', 'danger')
+                    return redirect(url_for('mapping', file_type=financial_statement))
+            
+            # 新しい標準勘定科目を作成
+            new_standard_account = StandardAccount(
+                code=code,
+                name=name,
+                parent_code=parent_code,  # 上位科目コードを設定
+                category=category,
+                financial_statement=financial_statement,
+                account_type=account_type,
+                display_order=display_order,
+                description=description or ''
+            )
+            
+            # データベースに保存
+            db.session.add(new_standard_account)
+            db.session.commit()
+            
+            flash(f'標準勘定科目「{name}（コード:{code}）」を追加しました。', 'success')
+            
+            # 詳細なログ記録
+            logger.info(f"New standard account added: code={code}, name={name}, parent_code={parent_code}, financial_statement={financial_statement}")
+            
+            # リフレッシュフラグを追加して、強制的に再読み込みするよう指示
+            return redirect(url_for('mapping', file_type=financial_statement, refresh='true'))
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error adding standard account: {str(e)}")
+            flash(f'標準勘定科目の追加中にエラーが発生しました: {str(e)}', 'danger')
+            return redirect(url_for('mapping', file_type=financial_statement or 'bs'))
+            
+    @app.route('/analysis')
+    def analysis():
+        """Financial analysis page"""
+        jas = JA.query.all()
+        
+        # 年度の一覧を取得（重複なしでソート）
+        all_years = []
+        
+        # データベースから利用可能な年度を取得
+        years_query = db.session.query(JA.year).distinct().order_by(JA.year.desc()).all()
+        for year_tuple in years_query:
+            if year_tuple[0] is not None:  # Noneの年度は除外
+                all_years.append(year_tuple[0])
+            
+        # もしデータベースから年度が取得できなかった場合の対応
+        if not all_years:
+            all_years = [2025, 2024, 2023, 2022, 2021]  # デフォルト年度
+            
+        # 開発用のデフォルト年度（十分な種類の年度を確保）
+        if len(all_years) < 3:
+            # 既存の年度をリストに保持しつつ、新しい年度を追加
+            existing_years = set(all_years)
+            for year in [2025, 2024, 2023, 2022, 2021]:
+                if year not in existing_years:
+                    all_years.append(year)
+            # 降順にソート
+            all_years.sort(reverse=True)
+            
+        logger.debug(f"分析ページ - 利用可能な年度: {all_years} (タイプ: {type(all_years)})")
+        
+        # Get selected JA and year from URL parameters first, then session, or use first available
+        url_ja_code = request.args.get('ja_code')
+        url_year = request.args.get('year')
+        
+        selected_ja_code = url_ja_code or session.get('selected_ja_code')
+        selected_year = url_year or session.get('selected_year')
+        
+        # Convert year to integer if it's a string
+        if selected_year and isinstance(selected_year, str):
+            try:
+                selected_year = int(selected_year)
+            except ValueError:
+                selected_year = None
+        
+        if not selected_ja_code and jas:
+            selected_ja_code = jas[0].ja_code
+        
+        if not selected_year and all_years:
+            selected_year = all_years[0]  # 最新の年度を選択
+        
+        # Update session with the current selections
+        if selected_ja_code:
+            session['selected_ja_code'] = selected_ja_code
+        if selected_year:
+            session['selected_year'] = selected_year
+        
+        # Get selected analysis type
+        analysis_type = request.args.get('type', 'liquidity')
+        
+        # Check data availability
+        data_availability = {
+            'bs': False,
+            'pl': False,
+            'cf': False
+        }
+        
+        if selected_ja_code:
+            ja = JA.query.filter_by(ja_code=selected_ja_code).first()
+            if ja and ja.available_data:
+                available = ja.available_data.split(',')
+                data_availability['bs'] = 'bs' in available
+                data_availability['pl'] = 'pl' in available
+                data_availability['cf'] = 'cf' in available
+        
+        # Get analysis results
+        indicators = None
+        previous_year_indicators = None
+        if selected_ja_code and selected_year:
+            # 今年度の分析結果を取得
+            results = AnalysisResult.query.filter_by(
+                ja_code=selected_ja_code,
+                year=selected_year,
+                analysis_type=analysis_type
+            ).all()
+            
+            # 前年度の分析結果も取得（年度間比較用）
+            previous_year = int(selected_year) - 1
+            previous_results = AnalysisResult.query.filter_by(
+                ja_code=selected_ja_code,
+                year=previous_year,
+                analysis_type=analysis_type
+            ).all()
+            
+            # 今年度の指標データを処理
+            if results:
+                indicators = {}
+                for result in results:
+                    # JSONでの保存があれば、Python辞書に変換する
+                    accounts_used = {}
+                    if result.accounts_used:
+                        try:
+                            accounts_used = json.loads(result.accounts_used)
+                        except Exception as e:
+                            logger.error(f"Error parsing accounts_used JSON: {str(e)}")
+                    
+                    indicators[result.indicator_name] = {
+                        'value': result.indicator_value,
+                        'benchmark': result.benchmark,
+                        'risk_score': result.risk_score,
+                        'risk_level': result.risk_level,
+                        'analysis_result': result.analysis_result,
+                        'formula': result.formula,
+                        'calculation': result.calculation,
+                        'accounts_used': accounts_used
+                    }
+                    
+                    # 流動性分析の最初の指標の場合、ログにデータ内容を出力（デバッグ用）
+                    if result.analysis_type == 'liquidity' and result.indicator_name == 'current_ratio':
+                        logger.debug(f"Formula data for current_ratio: {result.formula}")
+                        logger.debug(f"Calculation data for current_ratio: {result.calculation}")
+                        logger.debug(f"Accounts used data for current_ratio: {result.accounts_used}")
+            
+            # 前年度の指標データを処理
+            if previous_results:
+                previous_year_indicators = {}
+                for result in previous_results:
+                    previous_year_indicators[result.indicator_name] = {
+                        'value': result.indicator_value,
+                        'benchmark': result.benchmark,
+                        'risk_score': result.risk_score,
+                        'risk_level': result.risk_level
+                    }
+                logger.debug(f"前年度（{previous_year}）の指標データを取得: {len(previous_results)}件")
+            else:
+                logger.debug(f"前年度（{previous_year}）の指標データはありません")
+                
+                # デモ用: 前年度データがない場合、テスト目的で擬似データを生成
+                if selected_ja_code == 'JA001' and indicators:
+                    previous_year_indicators = {}
+                    import random
+                    for name, data in indicators.items():
+                        # 現在の値に対して±10%のランダムな変動を加える
+                        if data['value'] is not None:
+                            change_factor = random.uniform(0.9, 1.1)
+                            previous_year_indicators[name] = {
+                                'value': data['value'] * change_factor,
+                                'benchmark': data['benchmark'],
+                                'risk_score': data['risk_score'],
+                                'risk_level': data['risk_level']
+                            }
+                    logger.debug(f"デモ用に前年度（{previous_year}）の擬似データを生成: {len(previous_year_indicators)}件")
+        
+        # Get overall risk assessment
+        risk_assessment = RiskAnalyzer.get_overall_risk_score(selected_ja_code, selected_year)
+        
+        # 前年度のリスク評価も取得（可能であれば）
+        previous_risk_assessment = None
+        if selected_ja_code and selected_year:
+            previous_year = int(selected_year) - 1
+            previous_risk_assessment = RiskAnalyzer.get_overall_risk_score(selected_ja_code, previous_year)
+        
+        return render_template(
+            'analysis.html',
+            jas=jas,
+            selected_ja_code=selected_ja_code,
+            selected_year=selected_year,
+            all_years=all_years,  # 年度リストを追加
+            analysis_type=analysis_type,
+            data_availability=data_availability,
+            indicators=indicators,
+            previous_year_indicators=previous_year_indicators,
+            previous_year=previous_year if selected_year else None,
+            risk_assessment=risk_assessment,
+            previous_risk_assessment=previous_risk_assessment
+        )
+    
+
+
+    @app.route('/calculate_indicators', methods=['POST'])
+    def calculate_indicators():
+        """Calculate financial indicators"""
+        try:
+            ja_code = request.form.get('ja_code')
+            year = request.form.get('year')
+            
+            logger.debug(f"財務指標計算リクエスト: ja_code={ja_code}, year={year}")
+            
+            if not ja_code or not year:
+                flash('必須項目が不足しています。', 'danger')
+                return redirect(url_for('analysis'))
+            
+            try:
+                # セッションに選択したJAと年度を保存
+                session['selected_ja_code'] = ja_code
+                session['selected_year'] = int(year)
+                
+                # すでに存在する分析結果を削除
+                from models import AnalysisResult
+                deleted = AnalysisResult.query.filter_by(ja_code=ja_code, year=int(year)).delete()
+                db.session.commit()
+                logger.debug(f"既存の分析結果を削除: {deleted}件")
+                
+                # 各カテゴリを個別に計算して例外を処理
+                try:
+                    FinancialIndicators.calculate_liquidity_indicators(ja_code, int(year))
+                    logger.debug("流動性指標計算完了")
+                except Exception as e:
+                    logger.warning(f"流動性指標計算エラー: {str(e)}")
+                
+                try:
+                    FinancialIndicators.calculate_profitability_indicators(ja_code, int(year))
+                    logger.debug("収益性指標計算完了")
+                except Exception as e:
+                    logger.warning(f"収益性指標計算エラー: {str(e)}")
+                
+                try:
+                    FinancialIndicators.calculate_safety_indicators(ja_code, int(year))
+                    logger.debug("安全性指標計算完了")
+                except Exception as e:
+                    logger.warning(f"安全性指標計算エラー: {str(e)}")
+                
+                try:
+                    FinancialIndicators.calculate_efficiency_indicators(ja_code, int(year))
+                    logger.debug("効率性指標計算完了")
+                except Exception as e:
+                    logger.warning(f"効率性指標計算エラー: {str(e)}")
+                
+                try:
+                    FinancialIndicators.calculate_cash_flow_indicators(ja_code, int(year))
+                    logger.debug("キャッシュフロー指標計算完了")
+                except Exception as e:
+                    logger.warning(f"キャッシュフロー指標計算エラー: {str(e)}")
+                
+                # コミット
+                db.session.commit()
+                
+                flash('財務指標の計算が完了しました。', 'success')
+                return redirect(url_for('analysis', type='profitability'))
+                
+            except Exception as calc_error:
+                db.session.rollback()
+                logger.error(f"財務指標計算処理エラー: {str(calc_error)}")
+                flash(f'指標計算処理中にエラーが発生しました: {str(calc_error)}', 'danger')
+                return redirect(url_for('analysis'))
+            
+        except Exception as e:
+            logger.error(f"財務指標計算リクエスト処理エラー: {str(e)}")
+            flash(f'エラーが発生しました: {str(e)}', 'danger')
+            return redirect(url_for('analysis'))
+    
+    @app.route('/api/recalculate_indicators', methods=['POST'])
+    def api_recalculate_indicators():
+        """APIエンドポイント：財務指標を再計算する"""
+        try:
+            ja_code = request.form.get('ja_code')
+            year = request.form.get('year')
+            
+            if not ja_code or not year:
+                logger.warning("必須パラメータ欠如: ja_code または year が指定されていません")
+                return jsonify({
+                    'status': 'error',
+                    'message': '必須パラメータが不足しています'
+                })
+            
+            logger.info(f"財務指標再計算API: JA={ja_code}, year={year}")
+            
+            try:
+                # 既存の分析結果を削除
+                deleted = AnalysisResult.query.filter_by(ja_code=ja_code, year=int(year)).delete()
+                logger.info(f"既存の分析結果を削除: {deleted}件")
+                db.session.commit()
+                
+                # 各カテゴリの指標を個別に計算（エラーがあっても処理を続行）
+                errors = []
+                
+                try:
+                    FinancialIndicators.calculate_liquidity_indicators(ja_code, int(year))
+                    logger.info("流動性指標計算完了")
+                except Exception as e:
+                    logger.warning(f"流動性指標計算エラー: {str(e)}")
+                    errors.append(f"流動性指標: {str(e)}")
+                
+                try:
+                    FinancialIndicators.calculate_profitability_indicators(ja_code, int(year))
+                    logger.info("収益性指標計算完了")
+                except Exception as e:
+                    logger.warning(f"収益性指標計算エラー: {str(e)}")
+                    errors.append(f"収益性指標: {str(e)}")
+                
+                try:
+                    FinancialIndicators.calculate_safety_indicators(ja_code, int(year))
+                    logger.info("安全性指標計算完了")
+                except Exception as e:
+                    logger.warning(f"安全性指標計算エラー: {str(e)}")
+                    errors.append(f"安全性指標: {str(e)}")
+                
+                try:
+                    FinancialIndicators.calculate_efficiency_indicators(ja_code, int(year))
+                    logger.info("効率性指標計算完了")
+                except Exception as e:
+                    logger.warning(f"効率性指標計算エラー: {str(e)}")
+                    errors.append(f"効率性指標: {str(e)}")
+                
+                try:
+                    FinancialIndicators.calculate_cash_flow_indicators(ja_code, int(year))
+                    logger.info("キャッシュフロー指標計算完了")
+                except Exception as e:
+                    logger.warning(f"キャッシュフロー指標計算エラー: {str(e)}")
+                    errors.append(f"キャッシュフロー指標: {str(e)}")
+                
+                # 変更をコミット
+                db.session.commit()
+                
+                # エラーが発生した場合も、一部の指標の計算は成功した可能性がある
+                if errors:
+                    message = "一部の指標計算でエラーが発生しましたが、他の指標は計算されました。"
+                    logger.warning(f"部分的な成功: {message} エラー: {', '.join(errors)}")
+                    return jsonify({
+                        'status': 'partial_success',
+                        'message': message,
+                        'errors': errors
+                    })
+                else:
+                    logger.info(f"成功: JA {ja_code}、{year}年度の財務指標再計算完了")
+                    return jsonify({
+                        'status': 'success',
+                        'message': '財務指標の再計算が完了しました'
+                    })
+                
+            except Exception as calc_error:
+                db.session.rollback()
+                error_msg = f"財務指標計算処理中にエラーが発生しました: {str(calc_error)}"
+                logger.error(error_msg)
+                return jsonify({
+                    'status': 'error',
+                    'message': error_msg
+                })
+        
+        except Exception as e:
+            error_msg = f"予期しないエラーが発生しました: {str(e)}"
+            logger.error(error_msg)
+            # エラーの詳細をより詳しくログに記録
+            logger.error(traceback.format_exc())
+            return jsonify({
+                'status': 'error',
+                'message': error_msg
+            })
+            
+    @app.route('/reports')
+    def reports():
+        """Reports page"""
+        jas = JA.query.all()
+        
+        # 年度の一覧を取得（重複なしでソート）
+        all_years = []
+        
+        # データベースから利用可能な年度を取得
+        years_query = db.session.query(JA.year).distinct().order_by(JA.year.desc()).all()
+        for year_tuple in years_query:
+            if year_tuple[0] is not None:  # Noneの年度は除外
+                all_years.append(year_tuple[0])
+            
+        # もしデータベースから年度が取得できなかった場合の対応
+        if not all_years:
+            all_years = [2025, 2024, 2023, 2022, 2021]  # デフォルト年度
+            
+        # 開発用のデフォルト年度（十分な種類の年度を確保）
+        if len(all_years) < 3:
+            # 既存の年度をリストに保持しつつ、新しい年度を追加
+            existing_years = set(all_years)
+            for year in [2025, 2024, 2023, 2022, 2021]:
+                if year not in existing_years:
+                    all_years.append(year)
+            # 降順にソート
+            all_years.sort(reverse=True)
+            
+        logger.debug(f"レポートページ - 利用可能な年度: {all_years}")
+        
+        # Get selected JA and year from session or use first available
+        selected_ja_code = session.get('selected_ja_code')
+        selected_year = session.get('selected_year')
+        
+        if not selected_ja_code and jas:
+            selected_ja_code = jas[0].ja_code
+        
+        if not selected_year and all_years:
+            selected_year = all_years[0]  # 最新の年度を選択
+        
+        # Get report type
+        report_type = request.args.get('type', 'summary')
+        
+        # Get analysis results
+        analysis_results = None
+        if selected_ja_code and selected_year:
+            analysis_results = AnalysisResult.query.filter_by(
+                ja_code=selected_ja_code,
+                year=selected_year
+            ).all()
+        
+        # Get risk assessment
+        risk_assessment = RiskAnalyzer.get_overall_risk_score(selected_ja_code, selected_year)
+        
+        # Get improvement suggestions if report type is 'improvement'
+        improvement_suggestions = None
+        if report_type == 'improvement':
+            improvement_suggestions = RiskAnalyzer.generate_improvement_suggestions(
+                selected_ja_code, selected_year
+            )
+        
+        # Get JA information
+        ja_info = JA.query.filter_by(ja_code=selected_ja_code).first()
+        
+        return render_template(
+            'reports.html',
+            jas=jas,
+            selected_ja_code=selected_ja_code,
+            selected_year=selected_year,
+            all_years=all_years,  # 年度リストを追加
+            report_type=report_type,
+            analysis_results=analysis_results,
+            risk_assessment=risk_assessment,
+            improvement_suggestions=improvement_suggestions,
+            ja_info=ja_info
+        )
+    
+    @app.route('/api/indicator_data')
+    def indicator_data():
+        """API endpoint for indicator data (for charts)"""
+        try:
+            # URLクエリから取得
+            ja_code = request.args.get('ja_code')
+            year = request.args.get('year')
+            analysis_type = request.args.get('type')
+            
+            # デバッグログ - セッションとパラメータの比較
+            logger.debug(f"Indicator API呼出: セッション ja_code={session.get('selected_ja_code')}, URLパラメータ ja_code={ja_code}")
+            logger.debug(f"Indicator API呼出: セッション year={session.get('selected_year')}, URLパラメータ year={year}")
+            logger.debug(f"Indicator API呼出: 分析タイプ={analysis_type}")
+            
+            if not ja_code or not year or not analysis_type:
+                logger.warning("必須パラメータ不足 - セッションから取得を試みます")
+                # もしURLパラメータが指定されていない場合はセッションから取得
+                ja_code = ja_code or session.get('selected_ja_code')
+                year = year or session.get('selected_year')
+                
+                if not ja_code or not year or not analysis_type:
+                    return jsonify({
+                        'status': 'error',
+                        'message': 'Missing required parameters'
+                    })
+            
+            # Get indicator data
+            results = AnalysisResult.query.filter_by(
+                ja_code=ja_code,
+                year=int(year),
+                analysis_type=analysis_type
+            ).all()
+            
+            # Format data for charts
+            data = {
+                'labels': [],
+                'values': [],
+                'benchmarks': [],
+                'colors': []
+            }
+            
+            for result in results:
+                # Skip indicators without proper numeric values
+                if result.indicator_value is None or result.indicator_name == 'working_capital' or result.indicator_name == 'free_cash_flow':
+                    continue
+                
+                # Format indicator name for display
+                display_name = result.indicator_name
+                if result.indicator_name == 'current_ratio':
+                    display_name = '流動比率'
+                elif result.indicator_name == 'quick_ratio':
+                    display_name = '当座比率'
+                elif result.indicator_name == 'cash_ratio':
+                    display_name = '現金比率'
+                elif result.indicator_name == 'roa':
+                    display_name = '総資産利益率'
+                elif result.indicator_name == 'roe':
+                    display_name = '自己資本利益率'
+                elif result.indicator_name == 'profit_margin':
+                    display_name = '利益率'
+                elif result.indicator_name == 'operating_margin':
+                    display_name = '営業利益率'
+                elif result.indicator_name == 'debt_ratio':
+                    display_name = '負債比率'
+                elif result.indicator_name == 'equity_ratio':
+                    display_name = '自己資本比率'
+                elif result.indicator_name == 'debt_to_equity':
+                    display_name = '負債資本比率'
+                elif result.indicator_name == 'interest_coverage':
+                    display_name = 'インタレストカバレッジレシオ'
+                elif result.indicator_name == 'asset_turnover':
+                    display_name = '総資産回転率'
+                elif result.indicator_name == 'receivables_turnover':
+                    display_name = '売上債権回転率'
+                elif result.indicator_name == 'inventory_turnover':
+                    display_name = '棚卸資産回転率'
+                elif result.indicator_name == 'days_sales_outstanding':
+                    display_name = '売上債権回収期間'
+                elif result.indicator_name == 'ocf_to_debt':
+                    display_name = '営業CF対負債比率'
+                elif result.indicator_name == 'cf_to_revenue':
+                    display_name = 'CF対売上比率'
+                elif result.indicator_name == 'cf_to_net_income':
+                    display_name = 'CF対純利益比率'
+                
+                data['labels'].append(display_name)
+                data['values'].append(result.indicator_value)
+                data['benchmarks'].append(result.benchmark if result.benchmark else 0)
+                
+                # Determine color based on risk score
+                if result.risk_score == 1:
+                    data['colors'].append('rgba(40, 167, 69, 0.7)')  # Green (low risk)
+                elif result.risk_score == 2:
+                    data['colors'].append('rgba(23, 162, 184, 0.7)')  # Teal (low-medium risk)
+                elif result.risk_score == 3:
+                    data['colors'].append('rgba(255, 193, 7, 0.7)')  # Yellow (medium risk)
+                elif result.risk_score == 4:
+                    data['colors'].append('rgba(255, 128, 0, 0.7)')  # Orange (medium-high risk)
+                elif result.risk_score == 5:
+                    data['colors'].append('rgba(220, 53, 69, 0.7)')  # Red (high risk)
+                else:
+                    data['colors'].append('rgba(108, 117, 125, 0.7)')  # Gray (unknown)
+            
+            return jsonify({
+                'status': 'success',
+                'data': data
+            })
+            
+        except Exception as e:
+            logger.error(f"Error getting indicator data: {str(e)}")
+            return jsonify({
+                'status': 'error',
+                'message': f"Error: {str(e)}"
+            })
+    
+    @app.route('/export_standard_accounts_file', methods=['GET'])
+    def export_standard_accounts_file():
+        """標準勘定科目データをCSVまたはExcelでエクスポートする"""
+        try:
+            # リクエストからパラメータを取得
+            file_type = request.args.get('file_type', 'bs')  # デフォルト: BS
+            export_format = request.args.get('format', 'csv')  # デフォルト: CSV
+            
+            # 標準勘定科目を取得
+            accounts = StandardAccount.query.filter_by(financial_statement=file_type).order_by(StandardAccount.code).all()
+            
+            if not accounts:
+                flash('エクスポートするデータがありません。', 'danger')
+                return redirect(url_for('standard_accounts'))
+            
+            # データフレームを作成
+            data = {
+                'コード': [account.code for account in accounts],
+                '勘定科目名': [account.name for account in accounts],
+                '区分': [account.account_type for account in accounts],
+                '上位科目コード': [account.parent_code or '' for account in accounts],
+                '表示順': [account.display_order for account in accounts]
+            }
+            
+            df = pd.DataFrame(data)
+            
+            # 一時ファイルを作成
+            statement_type_name = {"bs": "貸借対照表", "pl": "損益計算書", "cf": "キャッシュフロー計算書"}
+            filename = f"標準勘定科目_{statement_type_name.get(file_type, file_type)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            if export_format == 'excel':
+                # Excelファイル形式
+                output = BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df.to_excel(writer, index=False, sheet_name='標準勘定科目')
+                output.seek(0)
+                
+                return send_file(
+                    output, 
+                    mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    as_attachment=True,
+                    download_name=f"{filename}.xlsx"
+                )
+            else:
+                # CSVファイル形式（デフォルト）
+                output = BytesIO()
+                df.to_csv(output, index=False, encoding='utf-8-sig')
+                output.seek(0)
+                
+                return send_file(
+                    output,
+                    mimetype='text/csv',
+                    as_attachment=True,
+                    download_name=f"{filename}.csv"
+                )
+                
+        except Exception as e:
+            logger.error(f"エクスポート中にエラーが発生しました: {str(e)}")
+            flash(f'エクスポート中にエラーが発生しました: {str(e)}', 'danger')
+            return redirect(url_for('standard_accounts'))
+    
+    # デバッグ用セッション情報表示
+    @app.route('/session_info')
+    def session_info():
+        """デバッグ用：現在のセッション情報を表示"""
+        session_data = {
+            'selected_ja_code': session.get('selected_ja_code'),
+            'selected_year': session.get('selected_year'),
+            'cookie': request.cookies.get('session')
+        }
+        return jsonify(session_data)
+            
+    @app.route('/ja_comparison')
+    def ja_comparison():
+        """JA比較分析画面を表示"""
+        from sqlalchemy import func, distinct
+        
+        # 実際にデータが存在するJAのみを取得（各JAの利用可能年度も含む）
+        ja_with_years = db.session.query(
+            JA.ja_code,
+            JA.name,
+            JA.prefecture,
+            func.array_agg(distinct(CSVData.year)).label('available_years')
+        ).join(
+            CSVData, JA.ja_code == CSVData.ja_code
+        ).filter(
+            CSVData.year.isnot(None)
+        ).group_by(JA.ja_code, JA.name, JA.prefecture).order_by(JA.ja_code).all()
+        
+        # JA情報を辞書形式に変換（利用可能年度付き）
+        ja_with_data = []
+        for ja in ja_with_years:
+            ja_dict = {
+                'ja_code': ja.ja_code,
+                'name': ja.name,
+                'prefecture': ja.prefecture,
+                'available_years': sorted(ja.available_years) if ja.available_years else []
+            }
+            ja_with_data.append(ja_dict)
+        
+        # 利用可能な年度を取得（データが存在する年度のみ）
+        available_years = db.session.query(
+            func.distinct(CSVData.year)
+        ).filter(
+            CSVData.year.isnot(None)
+        ).order_by(CSVData.year.desc()).all()
+        available_years = [year[0] for year in available_years if year[0] is not None]
+        
+        # 利用可能なJAと年度の組み合わせを取得
+        ja_year_combinations = db.session.query(
+            CSVData.ja_code,
+            CSVData.year
+        ).filter(
+            CSVData.year.isnot(None)
+        ).distinct().all()
+        
+        # デバッグ情報を追加
+        logger.debug(f"JA比較画面: {len(ja_with_data)}個のJAが見つかりました")
+        for ja in ja_with_data:
+            logger.debug(f"JA: {ja['ja_code']} - {ja['name']}")
+        logger.debug(f"利用可能な年度: {available_years}")
+        
+        return render_template('ja_comparison.html', 
+                             ja_list=ja_with_data, 
+                             available_years=available_years)
+
+    # APIエンドポイントはapi_endpoints.pyに移行しました

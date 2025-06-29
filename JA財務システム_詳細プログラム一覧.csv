@@ -1,0 +1,100 @@
+カテゴリ,ファイル名,主要機能,詳細説明,技術要素,関連モデル
+コアシステム・アプリケーション基盤,app.py,Flaskアプリケーション設定・データベース初期化,Flask WebアプリケーションのメインエントリーポイントでSQLAlchemyデータベース接続・セッション管理・CORS設定・文字列正規化処理を実装,Flask + SQLAlchemy + PostgreSQL,全モデル
+コアシステム・アプリケーション基盤,main.py,アプリケーションエントリーポイント,Gunicornサーバー起動時に実行されるメインファイル・app.pyからFlaskインスタンスをインポートしてWebサーバーを起動,Gunicorn + Flask,なし
+コアシステム・アプリケーション基盤,models.py,データベースモデル定義,全データベーステーブルのSQLAlchemyモデル定義・JA情報・CSV財務データ・標準勘定科目・マッピング・残高・分析結果・計算式テーブルを含む,SQLAlchemy ORM + PostgreSQL,JA・CSVData・StandardAccount・AccountMapping・StandardAccountBalance・AnalysisResult・AccountFormula
+コアシステム・アプリケーション基盤,routes.py,Webルーティング・画面表示制御,Flask Webルーティング定義・メインダッシュボード・勘定科目残高一覧・財務分析画面・JA比較分析・データ管理画面・CSVアップロード処理を含む全画面制御,Flask Routing + Jinja2 Templates,JA・CSVData・StandardAccountBalance
+財務分析・計算エンジン,financial_indicators.py,財務指標計算エンジン,5カテゴリの財務指標計算エンジン・流動性指標（流動比率・当座比率・現金比率）・収益性指標（ROA・ROE・営業利益率）・安全性指標（自己資本比率・負債比率・固定比率）・効率性指標（総資産回転率）・キャッシュフロー指標・前年度比較・リスクスコア算出機能,Python計算ロジック + 財務分析理論,StandardAccountBalance・AnalysisResult
+財務分析・計算エンジン,risk_analyzer.py,リスクスコア算出・評価分析,カテゴリ別リスクレベル評価・総合リスクスコア計算・業界ベンチマークとの比較・リスク要因特定・改善提案生成・レーダーチャート用データ作成機能,統計分析 + リスク評価理論,AnalysisResult・StandardAccountBalance
+財務分析・計算エンジン,account_calculator.py,勘定科目合計値計算,勘定科目の合計値計算エンジン・資産の部合計・負債の部合計・純資産の部合計計算・計算式定義管理・優先度付き計算順序制御・StandardAccountBalanceテーブル使用,計算式エンジン + 勘定体系理論,StandardAccountBalance・AccountFormula
+データ処理・インポート,data_processor.py,CSVデータ処理・インポート,CSV財務データの読み込み・データ形式検証・欠損データ処理・データ型変換・エラーレポート生成・JA財務データのインポート処理・データ品質チェック機能,Pandas + CSV処理 + データ検証,CSVData・JA
+データ処理・インポート,create_account_balances.py,標準勘定科目残高データ作成,指定JA・年度の標準勘定科目残高データ生成・財務諸表タイプ別処理（BS・PL・CF）・データ整合性チェック・残高データの自動作成機能,データ生成ロジック + 財務諸表理論,StandardAccountBalance・CSVData・StandardAccount
+AI・自動マッピング機能,ai_account_mapper.py,AI支援勘定科目自動マッピング,Azure OpenAI API連携による勘定科目自動マッピング・完全一致マッピング・AI支援マッピング（信頼度スコア付き）・文字列類似度マッピング・バッチ処理対応・マッピング結果統計・文字列正規化処理,Azure OpenAI API + 自然言語処理 + 類似度計算,CSVData・StandardAccount・AccountMapping
+AI・自動マッピング機能,ai_mapping_rules.py,JA預金科目マッピングルール,JA特有の勘定科目ルール定義・預金関連科目の負債科目マッピング・ルールベース自動判定・JAの業務特性に対応した特別ルール適用,ルールエンジン + JA業務知識,StandardAccount・AccountMapping
+AI・自動マッピング機能,batch_mapping.py,バッチ処理一括マッピング,大量データの効率的処理・タイムアウト防止機能・処理進捗管理・エラーハンドリング・一度に複数勘定科目のマッピング実行・メモリ使用量制御,バッチ処理 + パフォーマンス最適化,CSVData・AccountMapping・StandardAccount
+AI・自動マッピング機能,direct_sql_mapping.py,SQL直接マッピング処理,高速データベース操作・一括更新処理・参照マッピング機能・SQLクエリによる直接データ操作・大量データの高速処理・トランザクション管理,SQL最適化 + データベース操作,AccountMapping・CSVData
+バックアップ・データ保護,backup_system.py,データバックアップ・リストア,マッピングデータバックアップ・残高データバックアップ（BS・PL・CF別）・JSON形式での保存・既存データ確認機能・詳細復元レポート・データ整合性チェック・バックアップファイル管理,JSON処理 + ファイル操作 + データ保護,AccountMapping・StandardAccountBalance・CSVData
+バックアップ・データ保護,backup_api.py,バックアップ機能API,バックアップ作成API・バックアップ一覧取得API・データ復元API・2段階確認プロンプト・エラーハンドリング・RESTful API設計・セキュリティ確認機能,REST API + セキュリティ + 確認プロセス,AccountMapping・StandardAccountBalance
+API・エンドポイント,api_endpoints.py,REST APIエンドポイント定義,リスクデータ取得API・勘定科目データ取得API・JA比較分析API・キャッシュクリアAPI・レスポンス形式統一・JSON形式データ提供・CORS対応,REST API + JSON + パフォーマンス監視,AnalysisResult・StandardAccountBalance・JA
+API・エンドポイント,clear_cache_route.py,キャッシュクリア機能,JAユーザー登録画面キャッシュクリア・ブラウザキャッシュバイパス・特殊ルート定義・キャッシュ無効化処理・パフォーマンス最適化,キャッシュ管理 + ブラウザ制御,なし
+勘定科目管理・追加,add_current_assets.py,流動資産科目追加,流動資産親科目設定・子科目関係定義・表示順序設定・勘定科目階層構造の構築・標準勘定科目マスタへの追加処理,勘定科目体系 + 階層構造管理,StandardAccount
+勘定科目管理・追加,add_total_accounts.py,BS合計科目追加,貸借対照表合計科目追加・階層構造定義・計算式設定・資産の部・負債の部・純資産の部合計科目の標準勘定科目マスタ追加,勘定科目体系 + 財務諸表構造,StandardAccount・AccountFormula
+データ確認・検証ツール,check_data.py,JA・年度データ状態確認,指定JA・年度のデータ存在チェック・レコード数確認・データ品質検証・財務諸表タイプ別データ確認・データ完整性検証機能,データ検証 + 品質管理,CSVData・StandardAccountBalance・JA
+データ確認・検証ツール,check_balance_data.py,残高データ状態確認,財務諸表タイプ別残高確認・異常値検出・データ完整性チェック・標準勘定科目残高の状態検証・残高データの品質確認機能,データ品質管理 + 異常値検出,StandardAccountBalance
+データ確認・検証ツール,check_profitability_data.py,収益性指標データ確認,利益関連科目確認・計算要素検証・指標計算テスト・収益性指標計算に使用される重要科目の値確認・税引前当期利益・総資産・純資産データ検証,収益性分析 + データ検証,StandardAccountBalance・AnalysisResult
+データ確認・検証ツール,check_safety_indicators_for_chart.py,レーダーチャート用安全性指標確認,チャート表示データ検証・安全性指標値確認・表示形式チェック・レーダーチャート描画用データの整合性確認・視覚化データ準備,データ視覚化 + チャート準備,AnalysisResult・StandardAccountBalance
+データ確認・検証ツール,check_ja_data.py,JAデータ・CSV状態確認,JA登録状況確認・CSV取り込み状況確認・データ連携状態検証・JAマスタとCSVデータの整合性チェック・データベース内のJAデータ状況確認,データ連携 + 整合性チェック,JA・CSVData
+データ確認・検証ツール,check_accounts_display_order.py,勘定科目表示順序確認,勘定科目の表示順序確認・画面表示制御・ソート順序検証・ユーザーインターフェース表示順序の適切性確認,UI/UX + 表示制御,StandardAccount・StandardAccountBalance
+データ確認・検証ツール,check_analysis_results.py,分析結果確認,財務指標計算結果検証・分析結果データの整合性確認・計算精度検証・指標値の妥当性チェック・リスクスコア検証,計算結果検証 + 精度管理,AnalysisResult
+データ確認・検証ツール,check_and_fix_ja004.py,JA004安全性指標確認・修正,特定JA（JA004）の安全性指標データ確認・修正処理・個別JA対応・データ修正機能・特定ケース対応処理,個別対応 + データ修正,AnalysisResult・StandardAccountBalance
+データ確認・検証ツール,check_api_endpoints.py,APIエンドポイント確認,API動作確認・エンドポイント応答テスト・API機能検証・レスポンス確認・APIの健全性チェック機能,API テスト + 動作確認,なし
+データ確認・検証ツール,check_available_data.py,利用可能データ確認,データ可用性チェック・システム内データの利用可能状況確認・データ存在確認・アクセス可能性検証,データ可用性 + アクセス制御,全モデル
+データ確認・検証ツール,check_balances.py,勘定科目残高確認,勘定科目残高値チェック・残高データの妥当性確認・数値検証・残高計算の正確性確認機能,残高検証 + 数値妥当性,StandardAccountBalance
+データ確認・検証ツール,check_bs_data.py,BSデータ確認,貸借対照表データ確認・BS財務諸表データの整合性チェック・資産・負債・純資産データ検証・流動資産関連勘定科目確認,貸借対照表検証 + 財務諸表理論,StandardAccountBalance・CSVData
+データ確認・検証ツール,check_cf_account_display.py,CF勘定科目表示確認,キャッシュフロー計算書の勘定科目表示確認・CF表示制御・営業活動・投資活動・財務活動キャッシュフロー表示検証,キャッシュフロー表示 + UI制御,StandardAccountBalance
+データ確認・検証ツール,check_cf_accounts.py,CF勘定科目確認,キャッシュフロー計算書科目チェック・CF関連勘定科目の存在確認・キャッシュフロー構成要素検証,キャッシュフロー理論 + 科目検証,StandardAccount・StandardAccountBalance
+データ確認・検証ツール,check_cf_balances.py,CF残高確認,キャッシュフロー計算書残高値確認・CF残高データの妥当性チェック・現金流入流出データ検証,キャッシュフロー検証 + 数値妥当性,StandardAccountBalance
+データ確認・検証ツール,check_cf_data.py,CFデータ確認,キャッシュフロー計算書データ全般確認・CF財務諸表データ整合性チェック・キャッシュフロー計算の正確性検証,キャッシュフロー理論 + データ整合性,StandardAccountBalance・CSVData
+データ確認・検証ツール,check_cf_data_updated.py,CF更新データ確認,キャッシュフロー更新状況確認・CF データの更新履歴チェック・最新データ反映状況検証,データ更新管理 + 履歴追跡,StandardAccountBalance
+データ確認・検証ツール,check_cf_values.py,CF値確認,キャッシュフロー計算値確認・CF指標値の妥当性チェック・計算結果検証・数値精度確認機能,計算精度 + 数値検証,StandardAccountBalance・AnalysisResult
+データ確認・検証ツール,check_correct_code.py,正確なコード確認,勘定科目コード整合性確認・コード体系の正確性チェック・標準コードとの照合・コード統一性検証,コード管理 + 整合性チェック,StandardAccount・CSVData
+データ確認・検証ツール,check_csv_data_category.py,CSVデータカテゴリ確認,CSVデータ分類確認・財務諸表タイプ別データ分類検証・インポートデータのカテゴライズ確認,データ分類 + カテゴリ管理,CSVData
+データ確認・検証ツール,check_db.py,データベース確認,データベース状態チェック・DB接続確認・テーブル存在確認・データベース健全性検証・システム全体のDB状況確認,データベース管理 + システム監視,全モデル
+データ確認・検証ツール,check_debt_ratio.py,負債比率確認,負債比率安全性指標確認・負債比率計算の正確性検証・安全性指標の妥当性チェック・リスク評価データ確認,安全性分析 + リスク評価,StandardAccountBalance・AnalysisResult
+データ確認・検証ツール,check_efficiency_indicators.py,効率性指標確認,効率性指標評価確認・総資産回転率等の効率性指標計算検証・効率性リスクスコア確認・指標値妥当性チェック,効率性分析 + 指標検証,AnalysisResult・StandardAccountBalance
+データ確認・検証ツール,check_indicators_json.py,指標JSON構造確認,財務指標計算結果のJSON構造確認・データ形式検証・API レスポンス構造チェック・JSON データの整合性確認,JSON構造 + データ形式,AnalysisResult
+データ確認・検証ツール,check_ja004_efficiency.py,JA004効率性指標確認,特定JA（JA004）の効率性指標確認・個別JA効率性データ検証・特定ケース対応・効率性計算結果確認,個別JA分析 + 効率性評価,AnalysisResult・StandardAccountBalance
+データ確認・検証ツール,check_liquidity_balances.py,流動性指標残高確認,流動性指標関連残高データ確認・流動資産・流動負債データ検証・流動性分析用データの正確性確認・流動比率計算要素チェック,流動性分析 + 残高検証,StandardAccountBalance
+データ確認・検証ツール,check_mappings.py,マッピング状況確認,勘定科目マッピング状況調査・参照マッピング機能問題調査・マッピング精度確認・未マッピング科目特定・マッピング品質管理,マッピング品質 + 精度管理,AccountMapping・CSVData・StandardAccount
+データ確認・検証ツール,check_net_income.py,当期利益確認,収益性指標計算要素確認・当期純利益・税引前当期利益データ検証・収益性計算に使用される利益科目の値確認・総資産・純資産データ確認,収益性計算 + 利益データ,StandardAccountBalance
+データ確認・検証ツール,check_parent_child_structure.py,親子関係構造確認,勘定科目階層構造診断・親子関係の整合性確認・勘定科目合計の問題診断・階層構造の正確性検証,階層構造管理 + 関係性検証,StandardAccount・AccountFormula
+データ確認・検証ツール,check_pl.py,PLデータ確認,損益計算書データ確認・PL財務諸表データ整合性チェック・収益・費用データ検証・損益計算の正確性確認,損益計算書理論 + データ検証,StandardAccountBalance・CSVData
+データ確認・検証ツール,check_pl_balances.py,PL残高確認,損益計算書残高値確認・PL残高データの妥当性チェック・収益・費用残高検証・損益データの正確性確認,損益残高 + 数値妥当性,StandardAccountBalance
+データ確認・検証ツール,check_pl_data.py,PLデータ詳細確認,損益計算書データ全般チェック・PL財務諸表詳細検証・収益性分析用データ確認・当期純利益関連データ検証,損益計算書分析 + 詳細検証,StandardAccountBalance・CSVData
+データ確認・検証ツール,check_pl_mappings.py,PLマッピング確認,損益計算書科目マッピング確認・PL勘定科目のマッピング状況検証・収益・費用科目マッピング精度確認,PL マッピング + 精度管理,AccountMapping・StandardAccount
+データ確認・検証ツール,check_pl_mappings_correct.py,PL正確マッピング確認,損益計算書マッピング精度チェック・PL科目マッピングの正確性検証・マッピング品質向上・精度向上確認,マッピング精度 + 品質向上,AccountMapping・StandardAccount
+データ確認・検証ツール,check_pl_net_income.py,PL当期純利益確認,損益計算書当期純利益科目確認・利益科目データ検証・収益性指標計算用利益データ確認・当期純利益関連科目チェック,利益科目 + 収益性計算,StandardAccountBalance
+データ確認・検証ツール,check_pl_parents.py,PL親勘定科目確認,損益計算書階層構造確認・PL親勘定科目コード検証・損益計算書の勘定科目階層関係確認・親子関係整合性チェック,PL階層構造 + 親子関係,StandardAccount
+データ確認・検証ツール,check_risk_scores.py,リスクスコア確認,リスク評価値確認・カテゴリ別リスクスコア検証・総合リスク評価確認・リスク分析結果の妥当性チェック・リスクレベル判定確認,リスク評価 + スコア検証,AnalysisResult
+データ確認・検証ツール,check_safety_accounts_ui.py,安全性指標UI確認,安全性指標UI表示検証・画面表示データと実際のデータベース内容比較・安全性指標表示部分で使用される科目コードと値確認,UI検証 + 表示データ,StandardAccountBalance・AnalysisResult
+データ確認・検証ツール,check_safety_data.py,安全性データ確認,安全性指標データ状態確認・自己資本比率・負債比率等安全性指標データ検証・安全性分析用データの正確性確認,安全性分析 + データ状態,StandardAccountBalance・AnalysisResult
+データ確認・検証ツール,check_safety_indicator_data.py,安全性指標データ詳細,安全性指標計算要素詳細確認・安全性指標計算に使用される各科目値の詳細検証・計算精度確認機能,安全性計算 + 詳細検証,StandardAccountBalance・AnalysisResult
+データ確認・検証ツール,check_standard_accounts.py,標準勘定科目確認,標準勘定科目マスタ確認・標準科目データの整合性チェック・勘定科目体系の正確性検証・標準勘定科目の完整性確認,標準勘定科目 + 体系管理,StandardAccount
+データ確認・検証ツール,check_total_accounts.py,合計勘定科目確認,合計勘定科目データ確認・BS・PL・CF合計科目の存在確認・合計値計算の正確性検証・財務諸表合計項目チェック,合計科目 + 計算検証,StandardAccount・AccountFormula
+デバッグ・トラブルシューティング,debug_csv_values.py,CSV値デバッグ,CSVデータ内容確認・インポートデータのデバッグ・CSV値の妥当性チェック・データ型確認・エンコーディング問題診断,CSV デバッグ + データ診断,CSVData
+デバッグ・トラブルシューティング,debug_direct_mapping.py,直接マッピングデバッグ,直接マッピング処理確認・マッピング処理のトラブルシューティング・SQL マッピング処理デバッグ・処理速度確認,マッピング デバッグ + 処理確認,AccountMapping・CSVData
+デバッグ・トラブルシューティング,debug_exact_match.py,完全一致デバッグ,完全一致マッピング処理確認・一致処理のデバッグ・文字列比較処理確認・マッピング精度向上のためのデバッグ,完全一致 + 文字列処理,AccountMapping・StandardAccount
+デバッグ・トラブルシューティング,debug_import.py,インポートデバッグ,データ取込プロセス確認・インポート処理のトラブルシューティング・CSV インポートエラー診断・データ変換処理デバッグ,インポート処理 + エラー診断,CSVData
+デバッグ・トラブルシューティング,debug_mapping.py,マッピングデバッグ,勘定科目マッピング全般デバッグ・AI マッピング・完全一致・類似度マッピングの総合デバッグ・マッピング処理全体の問題診断,マッピング全般 + 問題診断,AccountMapping・CSVData・StandardAccount
+デバッグ・トラブルシューティング,debug_safety_indicators.py,安全性指標デバッグ,安全性指標計算確認・安全性指標計算処理のデバッグ・自己資本比率・負債比率計算のトラブルシューティング・計算精度確認,安全性計算 + デバッグ,StandardAccountBalance・AnalysisResult
+デバッグ・トラブルシューティング,debug_utils.py,デバッグユーティリティ,共通デバッグ機能・システム全体で使用されるデバッグツール・ログ出力・エラー診断・パフォーマンス測定等の共通機能,共通デバッグ + ユーティリティ,全モデル
+データ修正・メンテナンス,fix_account_parent_codes.py,勘定科目親コード修正,勘定科目階層構造修正・親コードの正確性確保・階層関係の整合性修正・勘定科目体系の修正処理,階層構造修正 + コード管理,StandardAccount
+データ修正・メンテナンス,fix_account_totals.py,勘定科目合計修正,勘定科目合計値修正・計算結果の修正処理・合計値の再計算・財務諸表合計項目の正確性確保,合計値修正 + 再計算,StandardAccountBalance・AccountFormula
+データ修正・メンテナンス,fix_accounts_display.py,勘定科目表示修正,勘定科目表示制御修正・画面表示順序の修正・UI表示の最適化・表示形式の改善処理,表示制御修正 + UI最適化,StandardAccount・StandardAccountBalance
+データ修正・メンテナンス,fix_ai_mapping.py,AIマッピング修正,AI支援マッピング処理修正・Azure OpenAI API連携の修正・マッピング精度向上・AI処理エラーの修正,AI処理修正 + 精度向上,AccountMapping・CSVData
+データ修正・メンテナンス,fix_all_liquidity_displays.py,流動性表示修正,流動性指標UI修正・流動性分析画面の表示修正・流動比率・当座比率・現金比率表示の最適化・チャート表示修正,流動性UI + 表示修正,StandardAccountBalance・AnalysisResult
+データ修正・メンテナンス,fix_analysis_results.py,分析結果修正,財務指標計算結果修正・分析結果データの修正処理・計算精度の向上・指標値の再計算・リスクスコア修正,計算結果修正 + 精度向上,AnalysisResult
+データ修正・メンテナンス,fix_available_data.py,利用可能データ修正,データ可用性修正・システム内データアクセスの修正・データ利用可能状況の改善・データ整合性修正,データ可用性 + アクセス修正,全モデル
+データ修正・メンテナンス,fix_balance_data.py,残高データ修正,標準勘定科目残高値修正・残高データの整合性修正・数値データの正確性確保・残高計算の修正処理,残高修正 + 数値精度,StandardAccountBalance
+データ修正・メンテナンス,fix_bs_parent_codes.py,BS親コード修正,貸借対照表階層修正・BS勘定科目の親コード修正・貸借対照表構造の整合性確保・資産・負債・純資産階層修正,BS階層修正 + 構造整合性,StandardAccount
+データ修正・メンテナンス,fix_cash_deposits_total.py,現金預金合計修正,流動資産修正・現金預金合計値の修正・現金・預金関連科目の合計計算修正・流動資産計算の正確性確保,流動資産修正 + 合計計算,StandardAccountBalance・AccountFormula
+データ修正・メンテナンス,fix_cf_operating.py,CF営業活動修正,キャッシュフロー計算修正・営業活動によるキャッシュフロー計算の修正・CF計算精度向上・現金流入流出計算修正,CF計算修正 + 営業活動,StandardAccountBalance
+データ修正・メンテナンス,fix_cf_totals.py,CF合計修正,キャッシュフロー総計修正・CF各項目合計の修正・営業・投資・財務活動キャッシュフロー合計の正確性確保,CF総計修正 + 全体整合性,StandardAccountBalance・AccountFormula
+データ修正・メンテナンス,fix_cf_triangle_minus.py,CF三角マイナス修正,キャッシュフロー表示修正・CF表示形式の修正・三角マイナス表示の統一・表示ルールの標準化処理,CF表示修正 + 表示統一,StandardAccountBalance
+データ修正・メンテナンス,fix_chart_labels.py,チャートラベル修正,レーダーチャート・棒グラフ等の表示文字修正・チャート要素のラベル最適化・視覚化表示の改善・グラフ表示文字の統一,チャート修正 + 視覚化改善,なし
+データ修正・メンテナンス,fix_current_assets_code.py,流動資産コード修正,流動資産科目コード修正・勘定科目コード体系の修正・コード統一性の確保・標準コードとの整合性修正,科目コード修正 + 体系統一,StandardAccount
+データ修正・メンテナンス,delete_and_recalculate.py,削除・再計算処理,既存データ削除・再計算処理・データリセット機能・財務指標の再計算・分析結果の全面再計算処理,データリセット + 再計算,AnalysisResult・StandardAccountBalance
+機能追加・データ作成,ensure_ja006.py,JA006データ保証,特定JA（JA006）データ確認・個別JAデータの存在保証・特定JAの必要データ作成・データ整合性確保,個別JA対応 + データ保証,JA・CSVData・StandardAccountBalance
+機能追加・データ作成,ensure_ja_exists.py,JA存在保証,JA登録確認・JAマスタデータの存在確認・必要なJAデータの作成・JA情報の整合性確保機能,JA管理 + 存在確認,JA
+機能追加・データ作成,demo_data_setup.py,デモデータ設定,システム初期データ作成・デモンストレーション用データセットアップ・テスト用財務データ作成・初期環境構築,初期データ + デモ環境,全モデル
+直接修正・最適化,direct_fix_ai_endpoints.py,AI APIエンドポイント直接修正,Azure OpenAI API連携修正・AI機能の直接修正・API呼び出し最適化・AI処理パフォーマンス向上,AI API修正 + 最適化,AccountMapping
+直接修正・最適化,direct_fix_efficiency.py,効率性指標直接修正,効率性指標計算修正・総資産回転率等効率性計算の直接修正・効率性分析精度向上・計算ロジック最適化,効率性計算修正 + 精度向上,StandardAccountBalance・AnalysisResult
+直接修正・最適化,direct_fix_indicators.py,指標直接修正,財務指標計算の直接修正・ROA・ROE・流動比率等主要指標の計算修正・指標計算精度向上・計算ロジック最適化,指標計算修正 + ロジック最適化,AnalysisResult・StandardAccountBalance
+直接修正・最適化,direct_fix_pl_balances.py,PL残高直接修正,損益計算書残高値の直接修正・PL数値データの修正・収益・費用データの正確性確保・損益データ最適化,PL数値修正 + データ最適化,StandardAccountBalance
+直接修正・最適化,direct_import_bs.py,BS直接インポート,貸借対照表データの直接取込・BSデータの高速インポート・資産・負債・純資産データの効率的取込・データ処理最適化,BS高速インポート + 処理最適化,CSVData・StandardAccountBalance
+直接修正・最適化,direct_import_pl_cf.py,PL・CF直接インポート,損益計算書・キャッシュフロー計算書データの直接取込・PL・CFデータの効率的インポート・財務諸表データ処理最適化,PL・CF高速インポート + 効率化,CSVData・StandardAccountBalance
+テストデータ作成,create_minimal_test_data.py,最小限テストデータ作成,機能テスト用最小データセット作成・参照マッピング機能最小限検証・タイムアウト回避のための小規模テストデータ生成,最小テスト + 機能検証,CSVData・AccountMapping・JA
+テストデータ作成,create_reference_mapping_test_data.py,参照マッピングテストデータ,参照マッピング機能テスト用データ作成・未マッピング科目を持つサンプルJAデータ作成・マッピング機能総合テスト用データセット,マッピングテスト + 機能検証,CSVData・AccountMapping・JA
+テストデータ作成,create_simple_test_data.py,簡易テストデータ作成,基本機能テスト用データ作成・システム動作確認用データセット・基本的な財務データテストセット作成,基本テスト + 動作確認,CSVData・JA・StandardAccountBalance
+テストデータ作成,create_simple_test_data_fixed.py,修正版簡易テストデータ,修正済み基本テストデータ作成・AccountMappingモデルの正確なフィールド名使用・データモデル準拠テストデータ,修正テスト + モデル準拠,CSVData・AccountMapping・JA
+テストデータ作成,create_test_data_final.py,最終版テストデータ,完成版テストデータ作成・無効フィールド削除済み実装・正確なデータモデルフィールド使用・本格テスト用データセット,完成テスト + 正確性確保,CSVData・AccountMapping・JA
+テストデータ作成,create_test_data_schema_correct.py,スキーマ正確テストデータ,データベース構造準拠テストデータ作成・正確なデータベーススキーマ対応・CSVDataとAccountMappingモデルの正確フィールド名使用,スキーマ準拠 + 構造正確性,CSVData・AccountMapping
